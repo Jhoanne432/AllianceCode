@@ -1,0 +1,1293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FastFood — Admin Portal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+    *{font-family: 'Inter', sans-serif}
+    :root{--primary:#10b981;--primary-dark:#059669;--secondary:#6366f1;--warning:#f59e0b;--danger:#ef4444}
+    body{background:#f1f5f9}
+    .content-section{display:none}
+    .content-section.active{display:block;animation:fade .28s ease}
+    @keyframes fade{from{opacity:.0;transform:translateY(4px)}to{opacity:1;transform:none}}
+    .nav-item{border-radius:.5rem}
+    .nav-item.active{background:#10b981;color:#fff}
+    .nav-item:hover{background:rgba(16,185,129,.08)}
+    .custom-scrollbar{scrollbar-width:thin;scrollbar-color:#10b981 #f1f5f9}
+    .custom-scrollbar::-webkit-scrollbar{width:6px}
+    .custom-scrollbar::-webkit-scrollbar-thumb{background:#10b981;border-radius:4px}
+    .tag{border:1px dashed #e5e7eb}
+  </style>
+</head>
+<body class="min-h-screen flex">
+  <!-- Overlay (mobile) -->
+  <div id="overlay" class="fixed inset-0 bg-black/50 hidden z-40"></div>
+
+  <!-- Sidebar -->
+  <aside id="sidebar" class="w-64 bg-white h-screen sticky top-0 shadow-sm z-50">
+    <div class="p-6">
+      <div class="flex items-center gap-3 mb-8">
+        <div class="w-10 h-10 bg-emerald-600 rounded-lg grid place-items-center text-white">
+          <i class="fa-solid fa-utensils"></i>
+        </div>
+        <div>
+          <h1 class="text-xl font-bold">FastFood</h1>
+          <p class="text-xs text-gray-500">Admin Portal</p>
+        </div>
+      </div>
+      <nav class="space-y-1">
+        <button class="nav-item active w-full flex items-center gap-3 px-4 py-3 text-left" data-section="dashboard">
+          <i class="fa-solid fa-gauge"></i><span>Dashboard</span>
+        </button>
+        <button class="nav-item w-full flex items-center gap-3 px-4 py-3 text-left" data-section="restaurant">
+          <i class="fa-solid fa-store"></i><span>Restaurant</span>
+        </button>
+        <button class="nav-item w-full flex items-center gap-3 px-4 py-3 text-left" data-section="staff">
+          <i class="fa-solid fa-user-gear"></i><span>Staff</span>
+        </button>
+        <button class="nav-item w-full flex items-center gap-3 px-4 py-3 text-left" data-section="menu">
+          <i class="fa-solid fa-utensils"></i><span>Menu</span>
+        </button>
+        <button class="nav-item w-full flex items-center gap-3 px-4 py-3 text-left" data-section="promotions">
+          <i class="fa-solid fa-bullhorn"></i><span>Promotions</span>
+        </button>
+        <button class="nav-item w-full flex items-center gap-3 px-4 py-3 text-left" data-section="reports">
+          <i class="fa-solid fa-chart-line"></i><span>Reports</span>
+        </button>
+        <div class="border-t pt-4 mt-4">
+          <button id="sidebarLogoutBtn" class="w-full px-4 py-3 text-left text-red-600 flex items-center gap-3">
+            <i class="fa-solid fa-right-from-bracket"></i><span>Logout</span>
+          </button>
+        </div>
+      </nav>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="flex-1 overflow-y-auto h-screen">
+    <!-- Topbar -->
+    <header id="topbar" class="bg-white shadow-sm border-b px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-4">
+        <button id="menu-toggle" class="md:hidden text-gray-600"><i class="fa-solid fa-bars text-xl"></i></button>
+        <div>
+          <h2 class="text-2xl font-bold">Admin Dashboard</h2>
+          <p class="text-gray-500 text-sm">Configure your restaurant, menu, promos, and view analytics.</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <div class="relative hidden md:block">
+          <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+          <input class="pl-10 pr-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500" placeholder="Search settings, items..." />
+        </div>
+        <button class="p-2 rounded-lg hover:bg-gray-100 text-gray-500"><i class="fa-regular fa-bell text-xl"></i></button>
+        <div class="w-10 h-10 bg-emerald-100 rounded-full grid place-items-center text-emerald-600"><i class="fa-regular fa-user"></i></div>
+      </div>
+    </header>
+
+    <!-- LOGIN (with 2FA) -->
+    <section id="login-section" class="content-section active fixed inset-0 z-[60] grid place-items-center bg-gray-100">
+      <div class="bg-white w-full max-w-md rounded-2xl shadow p-8">
+        <div class="text-center mb-6">
+          <div class="w-16 h-16 bg-emerald-600 rounded-full grid place-items-center text-white mx-auto mb-4"><i class="fa-solid fa-user-shield text-2xl"></i></div>
+          <h3 class="text-2xl font-bold">Admin Login</h3>
+          <p class="text-gray-500">Two‑Factor Authentication enabled</p>
+        </div>
+        <form id="adminLoginForm" class="space-y-4">
+          <div>
+            <label class="text-sm font-medium">Email</label>
+            <input id="adminEmail" type="email" class="mt-1 w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500" placeholder="admin@fastfood.com" required />
+          </div>
+          <div>
+            <label class="text-sm font-medium">Password</label>
+            <input id="adminPassword" type="password" class="mt-1 w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500" placeholder="••••••••" required />
+          </div>
+          <div class="flex items-center justify-between text-sm">
+            <label class="inline-flex items-center gap-2"><input type="checkbox" class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" /> Remember me</label>
+            <button type="button" id="openForgot" class="text-emerald-600 hover:underline">Forgot password?</button>
+          </div>
+          <button class="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg py-2.5">Login</button>
+        </form>
+      </div>
+
+      <!-- 2FA Modal -->
+      <div id="twoFAModal" class="hidden fixed inset-0 z-[70]">
+        <div class="absolute inset-0 bg-black/40"></div>
+        <div class="relative h-full w-full grid place-items-center p-4">
+          <div class="bg-white w-full max-w-md rounded-2xl p-6 shadow-xl">
+            <div class="flex items-center justify-between mb-2">
+              <h4 class="text-lg font-semibold">Two‑Factor Verification</h4>
+              <button class="text-gray-500" onclick="close2FA()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <p class="text-sm text-gray-600 mb-4">Enter the 6‑digit code sent to your email/app.</p>
+            <div class="grid grid-cols-6 gap-2" id="otpGrid"></div>
+            <div class="flex items-center justify-between mt-4 text-sm">
+              <button id="resendOTP" class="text-emerald-600">Resend code</button>
+              <span id="otpTimer" class="text-gray-500">02:00</span>
+            </div>
+            <button id="verifyOTP" class="mt-5 w-full bg-emerald-600 text-white rounded-lg py-2.5">Verify & Continue</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Forgot Password -->
+      <div id="forgotModal" class="hidden fixed inset-0 z-[70]">
+        <div class="absolute inset-0 bg-black/40" onclick="hideForgot()"></div>
+        <div class="relative h-full w-full grid place-items-center p-4">
+          <div class="bg-white w-full max-w-md rounded-2xl p-6 shadow-xl">
+            <div class="flex items-center justify-between mb-2"><h4 class="text-lg font-semibold">Reset Password</h4>
+              <button class="text-gray-500" onclick="hideForgot()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <p class="text-sm text-gray-600 mb-4">Enter your admin email; we'll send a reset link.</p>
+            <input id="forgotEmail" type="email" class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500" placeholder="admin@fastfood.com" />
+            <div class="flex gap-2 mt-4">
+              <button class="flex-1 bg-gray-100 rounded-lg py-2" onclick="hideForgot()">Cancel</button>
+              <button class="flex-1 bg-emerald-600 text-white rounded-lg py-2" onclick="sendReset()">Send Link</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- DASHBOARD -->
+    <section id="dashboard-section" class="content-section p-6">
+      <!-- KPIs -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <article class="bg-white rounded-xl p-5 shadow-sm grid grid-cols-[auto,1fr] gap-4 items-center">
+          <div class="w-12 h-12 bg-emerald-100 rounded-lg grid place-items-center text-emerald-600"><i class="fa-solid fa-peso-sign"></i></div>
+          <div>
+            <p class="text-sm text-gray-500">Today's Revenue</p>
+            <div class="flex items-baseline gap-2">
+              <h3 id="kpiRevenue" class="text-2xl font-bold">₱0</h3>
+              <span id="kpiRevenueDelta" class="text-sm"></span>
+            </div>
+          </div>
+          <div class="col-span-2 h-10"><canvas id="sparkRevenue"></canvas></div>
+        </article>
+        <article class="bg-white rounded-xl p-5 shadow-sm grid grid-cols-[auto,1fr] gap-4 items-center">
+          <div class="w-12 h-12 bg-blue-100 rounded-lg grid place-items-center text-blue-600"><i class="fa-solid fa-bag-shopping"></i></div>
+          <div>
+            <p class="text-sm text-gray-500">Orders Today</p>
+            <div class="flex items-baseline gap-2"><h3 id="kpiOrders" class="text-2xl font-bold">0</h3><span id="kpiOrdersDelta" class="text-sm"></span></div>
+          </div>
+          <div class="col-span-2 h-10"><canvas id="sparkOrders"></canvas></div>
+        </article>
+        <article class="bg-white rounded-xl p-5 shadow-sm grid grid-cols-[auto,1fr] gap-4 items-center">
+          <div class="w-12 h-12 bg-amber-100 rounded-lg grid place-items-center text-amber-600"><i class="fa-solid fa-stopwatch"></i></div>
+          <div>
+            <p class="text-sm text-gray-500">Avg. Prep Time</p>
+            <div class="flex items-baseline gap-2"><h3 id="kpiPrep" class="text-2xl font-bold">0m</h3><span id="kpiPrepDelta" class="text-sm"></span></div>
+          </div>
+          <div class="col-span-2 h-10"><canvas id="sparkPrep"></canvas></div>
+        </article>
+        <article class="bg-white rounded-xl p-5 shadow-sm grid grid-cols-[auto,1fr] gap-4 items-center">
+          <div class="w-12 h-12 bg-purple-100 rounded-lg grid place-items-center text-purple-600"><i class="fa-solid fa-users"></i></div>
+          <div>
+            <p class="text-sm text-gray-500">Active Customers</p>
+            <div class="flex items-baseline gap-2"><h3 id="kpiActive" class="text-2xl font-bold">0</h3><span class="text-sm text-gray-500">live visitors</span></div>
+          </div>
+          <div class="col-span-2 h-10"><canvas id="sparkActive"></canvas></div>
+        </article>
+      </div>
+
+      <!-- Charts Row -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+        <div class="lg:col-span-2 bg-white rounded-xl p-6 shadow-sm">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="font-semibold">Sales Overview</h3>
+            <select id="salesRange" class="border rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-emerald-500">
+              <option value="7">Last 7 days</option>
+              <option value="30">Last 30 days</option>
+              <option value="90">Last 90 days</option>
+            </select>
+          </div>
+          <div class="h-80"><canvas id="salesChart"></canvas></div>
+        </div>
+        <div class="bg-white rounded-xl p-6 shadow-sm">
+          <h3 class="font-semibold mb-3">Ops Snapshot</h3>
+          <div id="opsGrid" class="grid grid-cols-2 gap-3"></div>
+          <h4 class="text-sm font-semibold text-gray-700 mt-4">Activity</h4>
+          <ul id="activityFeed" class="space-y-2 max-h-56 overflow-y-auto custom-scrollbar mt-1"></ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- RESTAURANT PROFILE & SETTINGS -->
+    <section id="restaurant-section" class="content-section p-6">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Profile Card -->
+        <div class="lg:col-span-2 bg-white rounded-xl p-6 shadow-sm">
+          <h2 class="text-xl font-bold mb-4">Restaurant Profile</h2>
+          <form id="profileForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="text-sm font-medium">Restaurant Name</label>
+              <input name="name" class="mt-1 w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500" placeholder="FastFood - Mactan" />
+            </div>
+            <div>
+              <label class="text-sm font-medium">Phone</label>
+              <input name="phone" class="mt-1 w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500" placeholder="(032) 123 4567" />
+            </div>
+            <div class="md:col-span-2">
+              <label class="text-sm font-medium">Address</label>
+              <input name="address" class="mt-1 w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500" placeholder="Timpolok Rd., Lapu‑Lapu City" />
+            </div>
+            <div class="md:col-span-2">
+              <label class="text-sm font-medium">Description</label>
+              <textarea name="desc" rows="3" class="mt-1 w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500" placeholder="Family‑friendly fast casual serving burgers, salads, and coffee." ></textarea>
+            </div>
+            <div>
+              <label class="text-sm font-medium">Upload Logo</label>
+              <input type="file" accept="image/*" class="mt-1 w-full border rounded-lg px-3 py-2" />
+            </div>
+            <div>
+              <label class="text-sm font-medium">Upload Photos</label>
+              <input type="file" accept="image/*" multiple class="mt-1 w-full border rounded-lg px-3 py-2" />
+            </div>
+            <div class="md:col-span-2 flex justify-end gap-2 mt-2">
+              <button type="button" class="px-4 py-2 rounded-lg bg-gray-100" onclick="resetProfile()">Reset</button>
+              <button class="px-4 py-2 rounded-lg bg-emerald-600 text-white" type="submit">Save Changes</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Service Settings -->
+        <div class="bg-white rounded-xl p-6 shadow-sm">
+          <h3 class="text-lg font-semibold mb-3">Service Settings</h3>
+          <div class="space-y-4">
+            <div>
+              <label class="text-sm font-medium">Delivery Radius (km)</label>
+              <input id="deliveryRadius" type="number" min="1" step="0.5" class="mt-1 w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500" value="5" />
+            </div>
+            <div>
+              <label class="text-sm font-medium">Delivery Fee (₱)</label>
+              <input id="deliveryFee" type="number" min="0" step="1" class="mt-1 w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500" value="59" />
+            </div>
+            <div>
+              <label class="text-sm font-medium">Minimum Order Amount (₱)</label>
+              <input id="minOrder" type="number" min="0" step="1" class="mt-1 w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500" value="200" />
+            </div>
+            <div>
+              <label class="text-sm font-medium">Operating Hours</label>
+              <div id="hoursList" class="mt-1 space-y-2"></div>
+              <button class="mt-2 text-sm text-emerald-600" onclick="setDefaultHours()">Set 9:00–21:00 (Daily)</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- STAFF MANAGEMENT -->
+    <section id="staff-section" class="content-section p-6">
+      <div class="bg-white rounded-xl p-6 shadow-sm">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-xl font-bold">Staff Accounts</h2>
+          <button class="bg-emerald-600 text-white px-4 py-2 rounded-lg" onclick="openStaffModal()"><i class="fa-solid fa-user-plus mr-2"></i>Add Staff</button>
+        </div>
+        <div class="flex items-center gap-2 mb-3">
+          <div class="relative">
+            <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+            <input id="staffSearch" class="pl-10 pr-3 py-2 border rounded-lg" placeholder="Search name, email..." />
+          </div>
+          <select id="roleFilter" class="border rounded-lg px-3 py-2">
+            <option value="">All Roles</option>
+            <option value="cashier">Cashier</option>
+            <option value="kitchen">Kitchen</option>
+            <option value="manager">Manager</option>
+          </select>
+        </div>
+        <div class="overflow-hidden border rounded-xl">
+          <table class="min-w-full text-sm">
+            <thead class="bg-gray-50 text-gray-600">
+              <tr>
+                <th class="px-3 py-2 text-left">Name</th>
+                <th class="px-3 py-2 text-left">Email</th>
+                <th class="px-3 py-2 text-left">Role</th>
+                <th class="px-3 py-2 text-left">Status</th>
+                <th class="px-3 py-2 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="staffTable" class="divide-y bg-white"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Add/Edit Staff Modal -->
+      <div id="staffModal" class="hidden fixed inset-0 z-[70]">
+        <div class="absolute inset-0 bg-black/40" onclick="closeStaffModal()"></div>
+        <div class="relative h-full w-full grid place-items-center p-4">
+          <div class="bg-white w-full max-w-lg rounded-2xl p-6 shadow-xl">
+            <div class="flex items-center justify-between mb-2">
+              <h4 id="staffModalTitle" class="text-lg font-semibold">Add Staff</h4>
+              <button class="text-gray-500" onclick="closeStaffModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="staffForm" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <input type="hidden" id="staffId" />
+              <div><label class="text-sm font-medium">Full Name</label><input id="staffName" class="mt-1 w-full border rounded-lg px-3 py-2" required></div>
+              <div><label class="text-sm font-medium">Email</label><input id="staffEmail" type="email" class="mt-1 w-full border rounded-lg px-3 py-2" required></div>
+              <div>
+                <label class="text-sm font-medium">Role</label>
+                <select id="staffRole" class="mt-1 w-full border rounded-lg px-3 py-2" required>
+                  <option value="cashier">Cashier</option>
+                  <option value="kitchen">Kitchen</option>
+                  <option value="manager">Manager</option>
+                </select>
+              </div>
+              <div>
+                <label class="text-sm font-medium">Temporary Password</label>
+                <input id="staffTempPass" class="mt-1 w-full border rounded-lg px-3 py-2" placeholder="Auto‑generate if blank" />
+              </div>
+              <div class="md:col-span-2 flex items-center justify-between">
+                <label class="inline-flex items-center gap-2 text-sm"><input id="forceReset" type="checkbox" class="rounded border-gray-300 text-emerald-600"> Force password reset on first login</label>
+                <div class="flex gap-2">
+                  <button type="button" class="px-4 py-2 rounded-lg bg-gray-100" onclick="closeStaffModal()">Cancel</button>
+                  <button class="px-4 py-2 rounded-lg bg-emerald-600 text-white">Save</button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MENU MANAGEMENT -->
+    <section id="menu-section" class="content-section p-6">
+      <div class="bg-white rounded-xl p-6 shadow-sm">
+        <div class="flex items-center justify-between gap-3 flex-wrap mb-4">
+          <h2 class="text-xl font-bold">Menu Management</h2>
+          <div class="flex items-center gap-2">
+            <div class="relative"><i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+              <input id="menuSearch" class="pl-10 pr-3 py-2 border rounded-lg" placeholder="Search items..." />
+            </div>
+            <select id="menuCategory" class="border rounded-lg px-3 py-2"><option value="">All Categories</option></select>
+            <button class="bg-emerald-600 text-white px-3 py-2 rounded-lg text-sm" onclick="openCategoryModal()"><i class="fa-solid fa-folder-plus mr-2"></i>Add Category</button>
+            <button class="bg-blue-600 text-white px-3 py-2 rounded-lg text-sm" onclick="openItemModal()"><i class="fa-solid fa-plus mr-2"></i>Add Item</button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <!-- Categories -->
+          <div class="lg:col-span-1">
+            <h3 class="font-semibold mb-2">Categories</h3>
+            <ul id="categoryList" class="space-y-2 max-h-[420px] overflow-y-auto custom-scrollbar"></ul>
+          </div>
+
+          <!-- Items grid -->
+          <div class="lg:col-span-2">
+            <div class="overflow-hidden border rounded-xl">
+              <table class="min-w-full text-sm">
+                <thead class="bg-gray-50 text-gray-600">
+                  <tr>
+                    <th class="px-3 py-2 text-left">Item</th>
+                    <th class="px-3 py-2 text-left">Category</th>
+                    <th class="px-3 py-2 text-right">Price (₱)</th>
+                    <th class="px-3 py-2 text-left">Stock</th>
+                    <th class="px-3 py-2 text-left">Promo</th>
+                    <th class="px-3 py-2 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="menuTable" class="divide-y bg-white"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Category Modal -->
+      <div id="categoryModal" class="hidden fixed inset-0 z-[70]">
+        <div class="absolute inset-0 bg-black/40" onclick="closeCategoryModal()"></div>
+        <div class="relative h-full w-full grid place-items-center p-4">
+          <div class="bg-white w-full max-w-md rounded-2xl p-6 shadow-xl">
+            <div class="flex items-center justify-between mb-2"><h4 id="catModalTitle" class="text-lg font-semibold">Add Category</h4><button class="text-gray-500" onclick="closeCategoryModal()"><i class="fa-solid fa-xmark"></i></button></div>
+            <input id="catId" type="hidden" />
+            <div class="space-y-3">
+              <div><label class="text-sm font-medium">Name</label><input id="catName" class="mt-1 w-full border rounded-lg px-3 py-2" placeholder="Burgers"></div>
+              <div><label class="text-sm font-medium">Description</label><textarea id="catDesc" rows="2" class="mt-1 w-full border rounded-lg px-3 py-2"></textarea></div>
+              <div class="flex gap-2 justify-end"><button class="px-4 py-2 rounded-lg bg-gray-100" onclick="closeCategoryModal()">Cancel</button><button class="px-4 py-2 rounded-lg bg-emerald-600 text-white" onclick="saveCategory()">Save</button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Add/Edit Item Modal -->
+    <div id="itemModal" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-black/40" onclick="closeItemModal()"></div>
+    <div class="relative h-full w-full grid place-items-center p-4">
+        <div class="bg-white w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl p-6 shadow-xl custom-scrollbar">
+        <div class="flex items-center justify-between mb-2">
+            <h4 id="itemModalTitle" class="text-lg font-semibold">Add Item</h4>
+            <button class="text-gray-500" onclick="closeItemModal()">
+            <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <form id="itemForm" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <input type="hidden" id="itemId" />
+
+            <!-- Name -->
+            <div>
+            <label class="text-sm font-medium">Name</label>
+            <input id="itemName" class="mt-1 w-full border rounded-lg px-3 py-2" required>
+            </div>
+
+            <!-- Category -->
+            <div>
+            <label class="text-sm font-medium">Category</label>
+            <select id="itemCategory" class="mt-1 w-full border rounded-lg px-3 py-2"></select>
+            </div>
+
+            <!-- Price -->
+            <div>
+            <label class="text-sm font-medium">Base Price (₱)</label>
+            <input id="itemPrice" type="number" step="0.01" class="mt-1 w-full border rounded-lg px-3 py-2" required>
+            </div>
+
+            <!-- Stock -->
+            <div>
+            <label class="text-sm font-medium">Stock</label>
+            <input id="itemStock" type="number" class="mt-1 w-full border rounded-lg px-3 py-2" value="10">
+            </div>
+
+            <!-- Description -->
+            <div class="md:col-span-2">
+            <label class="text-sm font-medium">Description</label>
+            <textarea id="itemDesc" rows="3" class="mt-1 w-full border rounded-lg px-3 py-2"
+                placeholder="Short description visible to customers"></textarea>
+            </div>
+
+            <!-- Image Upload -->
+            <div class="md:col-span-2">
+            <label class="text-sm font-medium">Item Photo</label>
+            <input id="itemImage" type="file" accept="image/*" class="mt-1 w-full border rounded-lg px-3 py-2">
+            <div class="mt-2 w-40 h-40 border rounded-lg overflow-hidden bg-gray-50 grid place-items-center">
+                <img id="itemImagePreview" class="hidden object-cover w-full h-full" />
+                <span id="itemImagePlaceholder" class="text-xs text-gray-400">No image</span>
+            </div>
+            </div>
+
+            <!-- Customizations -->
+            <div class="md:col-span-2">
+            <div class="flex items-center justify-between mb-1">
+                <label class="text-sm font-medium">Customizations</label>
+                <button type="button" onclick="addCustomGroup()" class="px-3 py-1.5 bg-gray-100 rounded-lg text-sm">
+                <i class="fa-solid fa-plus mr-1"></i>Add Group
+                </button>
+            </div>
+            <p class="text-xs text-gray-500">Add groups (e.g., Size, Spice Level). Mark as required if customers must choose.</p>
+            <div id="customGroups" class="mt-2 space-y-3"></div>
+            </div>
+
+            <!-- Footer -->
+            <div class="md:col-span-2 flex justify-end gap-2 mt-4">
+            <button type="button" onclick="closeItemModal()" class="px-4 py-2 bg-gray-100 rounded-lg">Cancel</button>
+            <button type="submit" class="px-4 py-2 bg-emerald-600 text-white rounded-lg">Save</button>
+            </div>
+        </form>
+        </div>
+    </div>
+    </div>
+
+
+<!-- ===================== PROMOTIONS & MARKETING ===================== -->
+<section id="promotions-section" class="content-section p-6">
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+    <!-- Left: Campaign Builder -->
+    <div class="lg:col-span-2 bg-white rounded-xl p-6 shadow-sm">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-xl font-bold">Create Campaign</h2>
+        <button class="bg-slate-100 px-3 py-2 rounded-lg" onclick="promo_clearForm()">
+          Clear
+        </button>
+      </div>
+
+      <form id="campaignForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <input type="hidden" id="campId" />
+
+        <div>
+          <label class="text-sm font-medium">Title</label>
+          <input id="campTitle" class="mt-1 w-full border rounded-lg px-3 py-2" placeholder="Burger Blowout Weekend" required>
+        </div>
+
+        <div>
+          <label class="text-sm font-medium">Type</label>
+          <select id="campType" class="mt-1 w-full border rounded-lg px-3 py-2">
+            <option value="discount">Discount</option>
+            <option value="event">Event</option>
+            <option value="promo">Promo Bundle</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="text-sm font-medium">Start</label>
+          <input id="campStart" type="datetime-local" class="mt-1 w-full border rounded-lg px-3 py-2" required>
+        </div>
+
+        <div>
+          <label class="text-sm font-medium">End</label>
+          <input id="campEnd" type="datetime-local" class="mt-1 w-full border rounded-lg px-3 py-2" required>
+        </div>
+
+        <div>
+        <label class="text-sm font-medium">Target Scope</label>
+        <select id="campScope" class="mt-1 w-full border rounded-lg px-3 py-2">
+            <option value="all">All Items</option>
+            <option value="category">Category</option>
+        </select>
+        </div>
+
+        <div id="campCategoryWrap">
+        <label class="text-sm font-medium">Target Category</label>
+        <select id="campCategory" class="mt-1 w-full border rounded-lg px-3 py-2"></select>
+        </div>
+
+
+        <div>
+          <label class="text-sm font-medium">Discount % / Promo Pricing</label>
+          <input id="campValue" type="number" step="1" class="mt-1 w-full border rounded-lg px-3 py-2" placeholder="20">
+        </div>
+
+        <div class="md:col-span-2">
+          <label class="text-sm font-medium">Banner Image</label>
+          <input id="campBanner" type="file" accept="image/*" class="mt-1 w-full border rounded-lg px-3 py-2">
+          <div class="mt-2 w-64 h-32 border rounded-lg overflow-hidden bg-gray-50 grid place-items-center">
+            <img id="campBannerPreview" class="hidden w-full h-full object-cover">
+            <span id="campBannerPlaceholder" class="text-xs text-gray-400">No image</span>
+
+          </div>
+        </div>
+
+        <div class="md:col-span-2">
+          <label class="text-sm font-medium">Announcement</label>
+          <textarea id="campText" rows="3" class="mt-1 w-full border rounded-lg px-3 py-2"
+            placeholder="This weekend only! 20% off all burgers."></textarea>
+        </div>
+
+        <div class="md:col-span-2 flex items-center justify-between">
+          <label class="inline-flex items-center gap-2 text-sm">
+            <input id="campEnabled" type="checkbox" class="rounded border-gray-300 text-emerald-600" checked>
+            Enable immediately
+          </label>
+          <div class="flex gap-2">
+            <button type="button" class="px-4 py-2 rounded-lg bg-gray-100" onclick="promo_clearForm()">Reset</button>
+            <button type="submit" class="px-4 py-2 rounded-lg bg-emerald-600 text-white">Publish</button>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <!-- Right: Active Campaigns -->
+    <div class="bg-white rounded-xl p-6 shadow-sm">
+    <div class="flex items-center justify-between mb-3">
+    <h3 class="font-semibold">Active Campaigns</h3>
+    <select id="promoFilter" class="border rounded-lg px-3 py-1.5 text-sm">
+        <option value="">All</option>
+        <option value="enabled">Enabled</option>
+        <option value="disabled">Disabled</option>
+        <option value="discount">Type: Discount</option>
+        <option value="event">Type: Event</option>
+        <option value="promo">Type: Promo</option>
+    </select>
+    </div>
+
+      <ul id="campaignList" class="space-y-3 max-h-[560px] overflow-y-auto custom-scrollbar"></ul>
+    </div>
+
+  </div>
+
+    <!-- REPORTS & ANALYTICS -->
+    <section id="reports-section" class="content-section p-6">
+      <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        <div class="xl:col-span-2 bg-white rounded-xl p-6 shadow-sm">
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="text-xl font-bold">Revenue & Orders</h2>
+            <select id="repRange" class="border rounded-lg px-3 py-1.5 text-sm">
+              <option value="7">Last 7 days</option>
+              <option value="30">Last 30 days</option>
+              <option value="90">Last 90 days</option>
+            </select>
+          </div>
+          <div class="h-80"><canvas id="repSales"></canvas></div>
+        </div>
+        <div class="bg-white rounded-xl p-6 shadow-sm">
+          <h3 class="font-semibold mb-3">Customer Demographics</h3>
+          <div class="h-80"><canvas id="repDemo"></canvas></div>
+        </div>
+        <div class="bg-white rounded-xl p-6 shadow-sm">
+          <h3 class="font-semibold mb-3">Peak Hours</h3>
+          <div class="h-80"><canvas id="repPeak"></canvas></div>
+        </div>
+        <div class="bg-white rounded-xl p-6 shadow-sm">
+          <h3 class="font-semibold mb-3">Staff Performance</h3>
+          <div class="overflow-hidden border rounded-xl">
+            <table class="min-w-full text-sm">
+              <thead class="bg-gray-50 text-gray-600">
+                <tr><th class="px-3 py-2 text-left">Name</th><th class="px-3 py-2 text-left">Orders</th><th class="px-3 py-2 text-left">Avg Prep</th><th class="px-3 py-2 text-left">Rating</th></tr>
+              </thead>
+              <tbody id="perfTable" class="divide-y bg-white"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="bg-white rounded-xl p-6 shadow-sm xl:col-span-2">
+          <h3 class="font-semibold mb-3">Customer Insights</h3>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="rounded-lg border p-4"><div class="text-xs text-gray-500">Repeat Rate</div><div id="repeatRate" class="text-2xl font-bold">0%</div></div>
+            <div class="rounded-lg border p-4"><div class="text-xs text-gray-500">Avg Order Value</div><div id="aov" class="text-2xl font-bold">₱0</div></div>
+            <div class="rounded-lg border p-4"><div class="text-xs text-gray-500">Top Zip</div><div id="topZip" class="text-2xl font-bold">—</div></div>
+          </div>
+          <div class="h-72 mt-4"><canvas id="repTrends"></canvas></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- LOGOUT OVERLAY -->
+    <section id="logout-section" class="content-section fixed inset-0 z-[60] hidden grid place-items-center bg-gray-100">
+      <div class="bg-white rounded-2xl shadow p-8 w-full max-w-md text-center">
+        <div class="w-16 h-16 bg-red-100 text-red-600 rounded-full grid place-items-center mx-auto mb-4"><i class="fa-solid fa-right-from-bracket text-2xl"></i></div>
+        <h3 class="text-2xl font-bold mb-2">You have been logged out</h3>
+        <p class="text-gray-600 mb-6">Your session ended. Please log in again to continue.</p>
+        <button onclick="returnToLogin()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg py-2.5">Back to Login</button>
+      </div>
+    </section>
+  </main>
+
+  <!-- TOAST -->
+  <div id="toast" class="hidden fixed bottom-5 right-5 bg-emerald-600 text-white px-4 py-2 rounded-lg shadow"></div>
+
+  <script>
+    // ===== Layout: mobile sidebar toggle =====
+    const overlay = document.getElementById('overlay');
+    document.getElementById('menu-toggle').addEventListener('click',()=>{document.getElementById('sidebar').classList.toggle('open');overlay.classList.toggle('hidden')});
+    overlay.addEventListener('click',()=>{document.getElementById('sidebar').classList.remove('open');overlay.classList.add('hidden')});
+
+    // ===== Section Navigation =====
+    const navItems = document.querySelectorAll('.nav-item');
+    const sections = document.querySelectorAll('.content-section');
+    navItems.forEach(btn=>btn.addEventListener('click',()=>{
+      navItems.forEach(n=>n.classList.remove('active'));
+      btn.classList.add('active');
+      const id = btn.getAttribute('data-section');
+      sections.forEach(s=>s.classList.remove('active'));
+      document.getElementById(id+'-section').classList.add('active');
+    }));
+
+    // ===== Login + 2FA Flow (demo) =====
+    const loginSection = document.getElementById('login-section');
+    const otpModal = document.getElementById('twoFAModal');
+    const otpGrid = document.getElementById('otpGrid');
+    const otpTimer = document.getElementById('otpTimer');
+    let otpInterval, secondsLeft = 120;
+
+    function open2FA(){ otpModal.classList.remove('hidden'); otpGrid.innerHTML = '';
+      for(let i=0;i<6;i++){ const input=document.createElement('input'); input.maxLength=1; input.className='text-center border rounded-lg py-2'; input.oninput=(e)=>{e.target.value=e.target.value.replace(/\D/g,''); if(e.target.value && input.nextElementSibling) input.nextElementSibling.focus();}; otpGrid.appendChild(input);} otpGrid.firstChild.focus();
+      secondsLeft = 120; otpTimer.textContent = formatTime(secondsLeft); otpInterval = setInterval(()=>{secondsLeft--; otpTimer.textContent=formatTime(secondsLeft); if(secondsLeft<=0){clearInterval(otpInterval)}},1000);
+    }
+    function close2FA(){ otpModal.classList.add('hidden'); clearInterval(otpInterval); }
+    function formatTime(s){ const m = String(Math.floor(s/60)).padStart(2,'0'); const r = String(s%60).padStart(2,'0'); return `${m}:${r}` }
+    document.getElementById('resendOTP').addEventListener('click',()=>{secondsLeft=120; showToast('New code sent')});
+    document.getElementById('verifyOTP').addEventListener('click',()=>{close2FA(); showApp('dashboard-section'); showToast('Welcome back, Admin!')});
+
+    document.getElementById('adminLoginForm').addEventListener('submit', (e)=>{e.preventDefault(); open2FA();});
+    document.getElementById('openForgot').addEventListener('click',()=>{document.getElementById('forgotModal').classList.remove('hidden')});
+    function hideForgot(){ document.getElementById('forgotModal').classList.add('hidden') }
+    function sendReset(){ hideForgot(); showToast('Password reset link sent') }
+
+    function showApp(sectionId){ loginSection.classList.remove('active'); loginSection.classList.add('hidden');
+      sections.forEach(s=>s.classList.remove('active')); document.getElementById(sectionId).classList.add('active');
+    }
+
+    // Logout
+    document.getElementById('sidebarLogoutBtn').addEventListener('click',()=>{ sections.forEach(s=>s.classList.remove('active')); document.getElementById('logout-section').classList.remove('hidden'); document.getElementById('logout-section').classList.add('active'); });
+    function returnToLogin(){ document.getElementById('logout-section').classList.remove('active'); document.getElementById('logout-section').classList.add('hidden'); loginSection.classList.remove('hidden'); loginSection.classList.add('active'); }
+
+    // ===== Restaurant Hours =====
+    const defaultHours = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d=>({day:d,open:'09:00',close:'21:00',closed:false}));
+    let hours = JSON.parse(localStorage.getItem('hours')||'null') || defaultHours;
+    function renderHours(){ const wrap = document.getElementById('hoursList'); wrap.innerHTML = hours.map((h,i)=>`
+      <div class="flex items-center gap-2">
+        <div class="w-14 text-sm text-gray-600">${h.day}</div>
+        <input type="time" class="border rounded-lg px-2 py-1" value="${h.open}" onchange="uHours(${i},'open',this.value)" ${h.closed?'disabled':''}>
+        <span class="text-gray-400">—</span>
+        <input type="time" class="border rounded-lg px-2 py-1" value="${h.close}" onchange="uHours(${i},'close',this.value)" ${h.closed?'disabled':''}>
+        <label class="ml-auto inline-flex items-center gap-2 text-sm"><input type="checkbox" ${h.closed?'checked':''} onchange="uHours(${i},'closed',this.checked)"> Closed</label>
+      </div>`).join(''); }
+    function uHours(i,k,v){ hours[i][k]=v; localStorage.setItem('hours',JSON.stringify(hours)); renderHours(); }
+    function setDefaultHours(){ hours = JSON.parse(JSON.stringify(defaultHours)); localStorage.setItem('hours',JSON.stringify(hours)); renderHours(); showToast('Default hours applied'); }
+    renderHours();
+
+    // ===== Profile save (demo) =====
+    document.getElementById('profileForm').addEventListener('submit', (e)=>{e.preventDefault(); showToast('Profile saved');});
+    function resetProfile(){ document.getElementById('profileForm').reset(); showToast('Changes cleared'); }
+
+    // ===== Staff Management (demo state) =====
+    let staff = [
+      {id:'s1',name:'Michael Chen',email:'michael@fastfood.com',role:'kitchen',status:'Active'},
+      {id:'s2',name:'Jessica Park',email:'jessica@fastfood.com',role:'cashier',status:'Active'},
+      {id:'s3',name:'David Kim',email:'david@fastfood.com',role:'manager',status:'Suspended'}
+    ];
+    function renderStaff(){ const q=(document.getElementById('staffSearch').value||'').toLowerCase(); const rf=document.getElementById('roleFilter').value; const body=document.getElementById('staffTable');
+      const rows = staff.filter(s=>(!q || s.name.toLowerCase().includes(q)||s.email.toLowerCase().includes(q)) && (!rf || s.role===rf)).map(s=>`
+        <tr>
+          <td class="px-3 py-2">${esc(s.name)}</td>
+          <td class="px-3 py-2">${esc(s.email)}</td>
+          <td class="px-3 py-2 capitalize">${s.role}</td>
+          <td class="px-3 py-2"><span class="px-2 py-0.5 rounded-full text-xs ${s.status==='Active'?'bg-emerald-50 text-emerald-700':'bg-gray-100 text-gray-700'}">${s.status}</span></td>
+          <td class="px-3 py-2 text-right space-x-2">
+            <button class="px-2 py-1 rounded bg-gray-100" onclick="editStaff('${s.id}')"><i class="fa-solid fa-pen"></i></button>
+            <button class="px-2 py-1 rounded bg-amber-100 text-amber-700" onclick="toggleStaff('${s.id}')"><i class="fa-solid fa-user-slash"></i></button>
+            <button class="px-2 py-1 rounded bg-red-100 text-red-700" onclick="deleteStaff('${s.id}')"><i class="fa-solid fa-trash"></i></button>
+          </td>
+        </tr>`).join('');
+      body.innerHTML = rows || `<tr><td colspan="5" class="px-3 py-10 text-center text-gray-500">No staff found</td></tr>`;
+    }
+    renderStaff();
+    document.getElementById('staffSearch').addEventListener('input',renderStaff);
+    document.getElementById('roleFilter').addEventListener('change',renderStaff);
+
+    function openStaffModal(){ document.getElementById('staffModal').classList.remove('hidden'); document.getElementById('staffForm').reset(); document.getElementById('staffId').value=''; document.getElementById('staffModalTitle').textContent='Add Staff'; }
+    function closeStaffModal(){ document.getElementById('staffModal').classList.add('hidden'); }
+    function editStaff(id){ const s = staff.find(x=>x.id===id); openStaffModal(); document.getElementById('staffModalTitle').textContent='Edit Staff'; document.getElementById('staffId').value=s.id; document.getElementById('staffName').value=s.name; document.getElementById('staffEmail').value=s.email; document.getElementById('staffRole').value=s.role; }
+    function toggleStaff(id){ const s = staff.find(x=>x.id===id); s.status = s.status==='Active'?'Suspended':'Active'; renderStaff(); showToast('Status updated'); }
+    function deleteStaff(id){ staff = staff.filter(x=>x.id!==id); renderStaff(); showToast('Staff deleted'); }
+    document.getElementById('staffForm').addEventListener('submit',(e)=>{ e.preventDefault(); const id=document.getElementById('staffId').value || ('s'+(Date.now())); const obj={ id, name:document.getElementById('staffName').value, email:document.getElementById('staffEmail').value, role:document.getElementById('staffRole').value, status:'Active' }; const idx=staff.findIndex(x=>x.id===id); if(idx>-1) staff[idx]=obj; else staff.push(obj); closeStaffModal(); renderStaff(); showToast('Staff saved'); });
+
+    // ===== Menu Management (demo state) =====
+    let categories = [ {id:'c1', name:'Burgers', desc:'Beef & chicken'}, {id:'c2', name:'Salads', desc:'Fresh greens'}, {id:'c3', name:'Drinks', desc:'Coffee & juice'} ];
+    let items = [
+      {id:'i1', name:'Classic Burger', category:'c1', price:129, stock:20, active:true, promo:null},
+      {id:'i2', name:'Chicken Burger', category:'c1', price:119, stock:16, active:true, promo:null},
+      {id:'i3', name:'Caesar Salad', category:'c2', price:149, stock:12, active:true, promo:'Lunch 20%'},
+      {id:'i4', name:'Iced Latte', category:'c3', price:99, stock:40, active:true, promo:null}
+    ];
+
+    function renderCategories(){ const list=document.getElementById('categoryList'); const select=document.getElementById('menuCategory'); const itemCat=document.getElementById('itemCategory');
+      list.innerHTML = categories.map(c=>`
+        <li class="p-3 border rounded-lg flex items-start justify-between">
+          <div>
+            <div class="font-medium">${esc(c.name)}</div>
+            <div class="text-xs text-gray-500">${esc(c.desc||'')}</div>
+          </div>
+          <div class="space-x-2">
+            <button class="px-2 py-1 rounded bg-gray-100" onclick="openCategoryModal('${c.id}')"><i class="fa-solid fa-pen"></i></button>
+            <button class="px-2 py-1 rounded bg-red-100 text-red-700" onclick="deleteCategory('${c.id}')"><i class="fa-solid fa-trash"></i></button>
+          </div>
+        </li>`).join('');
+      select.innerHTML = '<option value="">All Categories</option>'+categories.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');
+      itemCat.innerHTML = categories.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');
+    }
+    renderCategories();
+
+    function renderItems(){ const tbody=document.getElementById('menuTable'); const q=(document.getElementById('menuSearch').value||'').toLowerCase(); const cat=document.getElementById('menuCategory').value;
+      const rows = items.filter(it=>(!q || it.name.toLowerCase().includes(q)) && (!cat || it.category===cat)).map(it=>{
+        const c = categories.find(x=>x.id===it.category); return `
+        <tr>
+          <td class="px-3 py-2">${esc(it.name)}</td>
+          <td class="px-3 py-2">${esc(c?c.name:'—')}</td>
+          <td class="px-3 py-2 text-right">${it.price.toFixed(2)}</td>
+          <td class="px-3 py-2">
+            <div class="flex items-center gap-2">
+              <input type="number" class="w-20 border rounded-lg px-2 py-1" value="${it.stock}" onchange="uItem('${it.id}','stock',this.value)" />
+              <label class="inline-flex items-center gap-2 text-xs"><input type="checkbox" ${it.active?'checked':''} onchange="uItem('${it.id}','active',this.checked)"> In Stock</label>
+            </div>
+          </td>
+          <td class="px-3 py-2">${it.promo?`<span class='px-2 py-0.5 rounded-full text-xs bg-amber-50 text-amber-700'>${esc(it.promo)}</span>`:'—'}</td>
+          <td class="px-3 py-2 text-right space-x-2">
+            <button class="px-2 py-1 rounded bg-gray-100" onclick="openItemModal('${it.id}')"><i class="fa-solid fa-pen"></i></button>
+            <button class="px-2 py-1 rounded bg-red-100 text-red-700" onclick="deleteItem('${it.id}')"><i class="fa-solid fa-trash"></i></button>
+          </td>
+        </tr>`;}).join('');
+      tbody.innerHTML = rows || `<tr><td colspan="6" class="px-3 py-10 text-center text-gray-500">No items found</td></tr>`;
+    }
+    renderItems();
+    document.getElementById('menuSearch').addEventListener('input',renderItems);
+    document.getElementById('menuCategory').addEventListener('change',renderItems);
+    // Preview Image
+    document.getElementById('itemImage').addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return setItemImagePreview(null);
+    const reader = new FileReader();
+    reader.onload = () => setItemImagePreview(reader.result);
+    reader.readAsDataURL(file);
+    });
+
+    function setItemImagePreview(src) {
+    const img = document.getElementById('itemImagePreview');
+    const ph = document.getElementById('itemImagePlaceholder');
+    if (src) { img.src = src; img.classList.remove('hidden'); ph.classList.add('hidden'); }
+    else { img.classList.add('hidden'); ph.classList.remove('hidden'); }
+    }
+
+    // Add Custom Group
+    function addCustomGroup(existing = {}) {
+    const wrap = document.getElementById('customGroups');
+    const group = document.createElement('div');
+    group.className = 'border p-3 rounded-lg';
+    group.innerHTML = `
+        <div class="flex items-center gap-2">
+        <input class="flex-1 border rounded px-3 py-2" placeholder="Title (e.g., Size)" value="${existing.title||''}">
+        <label class="flex items-center gap-1 text-sm">
+            <input type="checkbox" ${existing.required?'checked':''}> Required
+        </label>
+        <button type="button" onclick="this.closest('div.border').remove()" class="text-red-600"><i class="fa-solid fa-trash"></i></button>
+        </div>
+        <div class="mt-2 space-y-2" data-options></div>
+        <button type="button" onclick="addOptionRow(this)" class="mt-2 px-3 py-1 bg-gray-100 rounded text-sm">
+        <i class="fa-solid fa-plus mr-1"></i>Add Option
+        </button>
+    `;
+    wrap.appendChild(group);
+    if (!existing.options) addOptionRow(group.querySelector('button'));
+    else existing.options.forEach(o => addOptionRow(group.querySelector('button'), o));
+    }
+
+    function addOptionRow(btn, existing={}) {
+    const list = btn.closest('div.border').querySelector('[data-options]');
+    const row = document.createElement('div');
+    row.className = 'flex items-center gap-2';
+    row.innerHTML = `
+        <input class="flex-1 border rounded px-3 py-2" placeholder="Option (e.g., Large)" value="${existing.name||''}">
+        <input type="number" step="0.01" class="w-28 border rounded px-3 py-2" placeholder="+₱" value="${existing.delta||''}">
+        <button type="button" onclick="this.parentElement.remove()" class="text-red-600"><i class="fa-solid fa-trash"></i></button>
+    `;
+    list.appendChild(row);
+    }
+
+
+    function openCategoryModal(id){ document.getElementById('categoryModal').classList.remove('hidden'); document.getElementById('catModalTitle').textContent = id?'Edit Category':'Add Category'; const c=categories.find(x=>x.id===id)||{id:'',name:'',desc:''}; document.getElementById('catId').value=c.id; document.getElementById('catName').value=c.name; document.getElementById('catDesc').value=c.desc; }
+    function closeCategoryModal(){ document.getElementById('categoryModal').classList.add('hidden'); }
+    function saveCategory(){ const id=document.getElementById('catId').value || ('c'+Date.now()); const obj={ id, name:document.getElementById('catName').value, desc:document.getElementById('catDesc').value }; const idx=categories.findIndex(x=>x.id===id); if(idx>-1) categories[idx]=obj; else categories.push(obj); closeCategoryModal(); renderCategories(); renderItems(); showToast('Category saved'); }
+    function deleteCategory(id){ categories = categories.filter(c=>c.id!==id); items = items.filter(i=>i.category!==id); renderCategories(); renderItems(); showToast('Category deleted'); }
+
+    function openItemModal(id){ document.getElementById('itemModal').classList.remove('hidden'); document.getElementById('itemModalTitle').textContent = id?'Edit Item':'Add Item'; document.getElementById('itemForm').reset(); document.getElementById('itemId').value=''; document.getElementById('addonsWrap').innerHTML = `<div class=\"flex items-center gap-2\"> <input class=\"flex-1 border rounded-lg px-3 py-2\" placeholder=\"e.g., Extra cheese\" /><input type=\"number\" step=\"0.01\" class=\"w-32 border rounded-lg px-3 py-2\" placeholder=\"+₱\" /><button type=\"button\" class=\"px-2 py-2 bg-gray-100 rounded-lg\" onclick=\"addAddonRow()\"><i class=\"fa-solid fa-plus\"></i></button> </div>`; const it=items.find(x=>x.id===id); if(it){ document.getElementById('itemId').value=it.id; document.getElementById('itemName').value=it.name; document.getElementById('itemCategory').value=it.category; document.getElementById('itemPrice').value=it.price; document.getElementById('itemStock').value=it.stock; document.getElementById('itemActive').checked=it.active; }
+    }
+    function closeItemModal(){ document.getElementById('itemModal').classList.add('hidden'); }
+    function addAddonRow(){ const row=document.createElement('div'); row.className='flex items-center gap-2'; row.innerHTML = `<input class=\"flex-1 border rounded-lg px-3 py-2\" placeholder=\"e.g., Add bacon\" /><input type=\"number\" step=\"0.01\" class=\"w-32 border rounded-lg px-3 py-2\" placeholder=\"+₱\" /><button type=\"button\" class=\"px-2 py-2 bg-red-100 text-red-700 rounded-lg\" onclick=\"this.parentElement.remove()\"><i class=\"fa-solid fa-trash\"></i></button>`; document.getElementById('addonsWrap').appendChild(row); }
+    // Save (create/update item)
+    document.getElementById('itemForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+
+  let saved = false;
+  try {
+    // Collect customization groups safely
+    const groupEls = document.querySelectorAll('#customGroups [data-group-id]');
+    const customizations = Array.from(groupEls).map(group => {
+      // Title + Required are the first two inputs in the group header row
+      const headerInputs = group.querySelectorAll('> div:first-child input');
+      const titleInput   = headerInputs[0];
+      const requiredChk  = headerInputs[1];
+
+      const optionRows = group.querySelectorAll('[data-options] > div');
+      const options = Array.from(optionRows).map(row => {
+        const nameInput  = row.querySelector('input[type="text"], input:not([type="number"])');
+        const deltaInput = row.querySelector('input[type="number"]');
+        return {
+          name:  (nameInput?.value || '').trim(),
+          delta: parseFloat(deltaInput?.value || '0')
+        };
+      }).filter(o => o.name);
+
+      return {
+        title:   (titleInput?.value || '').trim(),
+        required: !!(requiredChk?.checked),
+        options
+      };
+    }).filter(g => g.title && g.options.length);
+
+    const id = document.getElementById('itemId').value || ('i' + Date.now());
+    const obj = {
+      id,
+      name: document.getElementById('itemName').value,
+      category: document.getElementById('itemCategory').value,
+      price: parseFloat(document.getElementById('itemPrice').value || '0'),
+      stock: parseInt(document.getElementById('itemStock').value || '0'),
+      active: document.getElementById('itemActive').checked,
+      desc: document.getElementById('itemDesc').value || '',
+      image: (document.getElementById('itemImagePreview').src || '') || null,
+      customizations
+    };
+
+    const idx = items.findIndex(x => x.id === id);
+    if (idx > -1) items[idx] = obj; else items.push(obj);
+
+    saved = true; // mark success
+  } catch (err) {
+    console.error('Item save error:', err);
+    showToast('There was an error saving the item.');
+  } finally {
+    // ✅ ALWAYS close modal even if something throws
+    closeItemModal();
+    // Re-render either way so the table refreshes on success
+    renderItems();
+    if (saved) showToast('Item saved');
+  }
+});
+
+    
+    function uItem(id,k,v){ const it=items.find(x=>x.id===id); it[k] = (k==='stock')?parseInt(v):v; renderItems(); }
+    function deleteItem(id){ items = items.filter(i=>i.id!==id); renderItems(); showToast('Item deleted'); }
+
+    // ===== Promotions (updated) =====
+    let campaigns = [
+    {
+        id: 'p1',
+        title: 'Lunch 20%',
+        type: 'discount',
+        enabled: true,
+        value: 20,
+        scope: 'category',          // 'all' or 'category' (falls back to category-only if scope UI not present)
+        category: 'c1',
+        text: 'Weekday lunch discount',
+        start: Date.now(),
+        end: Date.now() + 86400000,
+        banner: null                // data URL preview if provided
+    }
+    ];
+
+    // --- Helpers (use your existing ones if already defined) ---
+    function promo_setBannerPreview(src){
+    const img = document.getElementById('campBannerPreview');
+    const ph  = document.getElementById('campBannerPlaceholder');
+    if (!img || !ph) return; // if you don't have preview elements in HTML, skip
+    if(src){ img.src=src; img.classList.remove('hidden'); ph.classList.add('hidden'); }
+    else   { img.src='';  img.classList.add('hidden');   ph.classList.remove('hidden'); }
+    }
+    function dateDefaultLocal(hoursFromNow=2){
+    const t = new Date(Date.now() + hoursFromNow*3600*1000);
+    t.setMinutes(t.getMinutes() - t.getTimezoneOffset());
+    return t.toISOString().slice(0,16);
+    }
+
+    // --- Init / wiring ---
+    (function promo_init(){
+    // Fill categories select
+    const catSel = document.getElementById('campCategory');
+    if (catSel) catSel.innerHTML = categories.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');
+
+    // Optional scope UI (if present in your HTML)
+    const scopeSel = document.getElementById('campScope');
+    if (scopeSel){
+        scopeSel.addEventListener('change', ()=>{
+        const wrap = document.getElementById('campCategoryWrap');
+        if (wrap) wrap.style.display = (scopeSel.value==='category') ? '' : 'none';
+        });
+        // initialize visibility
+        const wrap = document.getElementById('campCategoryWrap');
+        if (wrap) wrap.style.display = (scopeSel.value==='category') ? '' : 'none';
+    }
+
+    // Banner preview (if the input exists)
+    const bannerInput = document.getElementById('campBanner');
+    if (bannerInput){
+        bannerInput.addEventListener('change', (e)=>{
+        const file = e.target.files?.[0];
+        if(!file) return promo_setBannerPreview(null);
+        const reader = new FileReader();
+        reader.onload = ()=> promo_setBannerPreview(reader.result);
+        reader.readAsDataURL(file);
+        });
+    }
+
+    // Submit form
+    document.getElementById('campaignForm').addEventListener('submit', (e)=>{
+        e.preventDefault();
+        const id = val('campId') || ('p'+Date.now());
+
+        const scopeSel = document.getElementById('campScope');
+        const scope = scopeSel ? scopeSel.value : 'category';
+
+        const payload = {
+        id,
+        title: val('campTitle') || '',
+        type:  val('campType'),
+        scope,
+        category: scope==='category' ? val('campCategory') : null,
+        start: new Date(val('campStart')).getTime(),
+        end:   new Date(val('campEnd')).getTime(),
+        value: parseInt(val('campValue') || '0'),
+        text:  val('campText') || '',
+        enabled: document.getElementById('campEnabled').checked,
+        banner: (document.getElementById('campBannerPreview')?.src || null)
+        };
+
+        const err = promo_validate(payload);
+        if (err){ showToast(err); return; }
+
+        const idx = campaigns.findIndex(x=>x.id===id);
+        if (idx>-1) campaigns[idx] = payload; else campaigns.push(payload);
+
+        renderCampaigns();
+        clearCampaignForm();
+        showToast('Campaign published');
+    });
+
+    // Optional filter (if you add <select id="promoFilter">)
+    const filterSel = document.getElementById('promoFilter');
+    if (filterSel) filterSel.addEventListener('change', renderCampaigns);
+
+    // First-time setup
+    clearCampaignForm();
+    renderCampaigns();
+    })();
+
+    // --- Validation (simple, shows first error) ---
+    function promo_validate(p){
+    if(!p.title.trim()) return 'Title is required.';
+    if(!p.start || !p.end) return 'Start and End time are required.';
+    if(p.end <= p.start) return 'End time must be after Start time.';
+    if((p.scope||'category')==='category' && !p.category) return 'Target category is required.';
+    if(p.type==='discount' && (isNaN(p.value) || p.value<=0)) return 'Discount value must be a positive number.';
+    return null;
+    }
+
+    // --- Clear/Reset the form with sensible defaults ---
+    function clearCampaignForm(){
+    document.getElementById('campaignForm').reset();
+    setVal('campId','');
+    setVal('campType','discount');
+    // If you have scope UI, default to 'all' (or 'category' if you prefer)
+    if (document.getElementById('campScope')){
+        setVal('campScope','all');
+        const wrap = document.getElementById('campCategoryWrap');
+        if (wrap) wrap.style.display='none';
+    }
+    // Enabled by default
+    document.getElementById('campEnabled').checked = true;
+
+    // Time defaults: now → +2h
+    setVal('campStart', dateDefaultLocal(0));
+    setVal('campEnd',   dateDefaultLocal(2));
+
+    // Refresh category list (in case categories changed)
+    const catSel = document.getElementById('campCategory');
+    if (catSel) catSel.innerHTML = categories.map(c=>`<option value='${c.id}'>${esc(c.name)}</option>`).join('');
+
+    // Reset banner preview (if preview elements exist)
+    promo_setBannerPreview(null);
+    }
+
+    // --- Render list with optional filtering & banner thumbnail ---
+    function renderCampaigns(){
+    const list = document.getElementById('campaignList');
+    const filterSel = document.getElementById('promoFilter');
+    const filter = filterSel ? filterSel.value : '';
+
+    let data = [...campaigns];
+    if (filter==='enabled') data = data.filter(p=>p.enabled);
+    else if (filter==='disabled') data = data.filter(p=>!p.enabled);
+    else if (['discount','event','promo'].includes(filter)) data = data.filter(p=>p.type===filter);
+
+    list.innerHTML = data.map(p=>`
+        <li class="p-3 border rounded-lg">
+        <div class="flex items-start gap-3">
+            <div class="w-20 h-14 rounded overflow-hidden bg-gray-50 grid place-items-center shrink-0">
+            ${p.banner ? `<img src="${esc(p.banner)}" class="w-full h-full object-cover">`
+                        : `<span class="text-[10px] text-gray-400">No image</span>`}
+            </div>
+            <div class="flex-1">
+            <div class="flex items-center justify-between">
+                <div>
+                <div class="font-medium">${esc(p.title)}</div>
+                <div class="text-xs text-gray-500 capitalize">${p.type} • ${dateShort(p.start)} → ${dateShort(p.end)}</div>
+                </div>
+                <div class="text-right space-y-1">
+                <label class="inline-flex items-center gap-2 text-sm">
+                    <input type="checkbox" ${p.enabled?'checked':''} onchange="toggleCampaign('${p.id}',this.checked)"> Enabled
+                </label>
+                <div class="space-x-2">
+                    <button class="px-2 py-1 rounded bg-gray-100" onclick="editCampaign('${p.id}')" title="Edit"><i class="fa-solid fa-pen"></i></button>
+                    <button class="px-2 py-1 rounded bg-red-100 text-red-700" onclick="delCampaign('${p.id}')" title="Delete"><i class="fa-solid fa-trash"></i></button>
+                </div>
+                </div>
+            </div>
+            <div class="mt-2 flex flex-wrap gap-2">
+                ${p.value ? `<span class="px-2 py-0.5 rounded-full text-xs bg-amber-50 text-amber-700">${p.type==='discount' ? p.value+'% off' : 'Value: '+p.value}</span>` : ''}
+                <span class="px-2 py-0.5 rounded-full text-xs border">
+                ${ (p.scope||'category')==='all' ? 'All Items' : 'Category: ' + esc(catName(p.category)) }
+                </span>
+            </div>
+            ${p.text ? `<p class="text-sm text-gray-700 mt-2">${esc(p.text)}</p>` : ''}
+            </div>
+        </div>
+        </li>
+    `).join('') || `<li class="p-6 text-center text-gray-500 border rounded-lg">No campaigns found</li>`;
+    }
+
+    // --- Actions ---
+    function editCampaign(id){
+    const p = campaigns.find(x=>x.id===id); if(!p) return;
+    navTo?.('promotions'); // optional nav helper if you have it
+
+    clearCampaignForm();
+    setVal('campId', p.id);
+    setVal('campTitle', p.title);
+    setVal('campType', p.type);
+
+    if (document.getElementById('campScope')){
+        setVal('campScope', p.scope || 'all');
+        const wrap = document.getElementById('campCategoryWrap');
+        if (wrap) wrap.style.display = (p.scope==='category') ? '' : 'none';
+    }
+
+    // Ensure category exists in dropdown if scope is category
+    if ((p.scope||'category')==='category' && p.category){
+        const catSel = document.getElementById('campCategory');
+        if (catSel){
+        const has = categories.some(c=>c.id===p.category);
+        if (!has){
+            categories.push({id:p.category, name:'(Unknown Category)'});
+            catSel.innerHTML = categories.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');
+        }
+        setVal('campCategory', p.category);
+        }
+    }
+
+    setVal('campStart', isoLocal(p.start));
+    setVal('campEnd',   isoLocal(p.end));
+    setVal('campValue', p.value ?? '');
+    setVal('campText',  p.text || '');
+    document.getElementById('campEnabled').checked = !!p.enabled;
+
+    // Load banner into preview (if preview exists)
+    promo_setBannerPreview(p.banner || null);
+
+    showToast('Loaded campaign for editing');
+    }
+    function toggleCampaign(id,on){
+    const p=campaigns.find(x=>x.id===id); if(!p) return;
+    p.enabled=!!on;
+    showToast(on?'Campaign enabled':'Campaign disabled');
+    renderCampaigns();
+    }
+    function delCampaign(id){
+    campaigns = campaigns.filter(x=>x.id!==id);
+    renderCampaigns();
+    showToast('Campaign deleted');
+    }
+
+
+
+    
+
+    // ===== Reports & Analytics (demo) =====
+    function genSeries(days){ return Array.from({length:days},(_,i)=>({ label: days<=7? ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][ (new Date(Date.now()-(days-1-i)*86400000)).getDay() ] : i+1, revenue: 8000+Math.random()*16000, orders: 40+Math.random()*90 })) }
+    let salesChart, customersChart, sparkCharts = {};
+    function initDashboard(){ refreshKPI();
+      sparkCharts.revenue = new Chart(document.getElementById('sparkRevenue'), { type:'line', data:{ labels:[1,2,3,4,5,6,7], datasets:[{ data: genSeries(7).map(x=>x.revenue), borderColor:'#10b981', backgroundColor:'rgba(16,185,129,.12)', tension:.4, fill:true }] }, options:{plugins:{legend:{display:false}},elements:{point:{radius:0}},scales:{x:{display:false},y:{display:false}},responsive:true,maintainAspectRatio:false} });
+      sparkCharts.orders = new Chart(document.getElementById('sparkOrders'), { type:'line', data:{ labels:[1,2,3,4,5,6,7], datasets:[{ data: genSeries(7).map(x=>x.orders), borderColor:'#3b82f6', backgroundColor:'rgba(59,130,246,.12)', tension:.4, fill:true }] }, options:{plugins:{legend:{display:false}},elements:{point:{radius:0}},scales:{x:{display:false},y:{display:false}},responsive:true,maintainAspectRatio:false} });
+      sparkCharts.prep = new Chart(document.getElementById('sparkPrep'), { type:'line', data:{ labels:[1,2,3,4,5,6,7], datasets:[{ data: genSeries(7).map(x=>10+Math.random()*8), borderColor:'#f59e0b', backgroundColor:'rgba(245,158,11,.12)', tension:.4, fill:true }] }, options:{plugins:{legend:{display:false}},elements:{point:{radius:0}},scales:{x:{display:false},y:{display:false}},responsive:true,maintainAspectRatio:false} });
+      sparkCharts.active = new Chart(document.getElementById('sparkActive'), { type:'line', data:{ labels:[1,2,3,4,5,6,7], datasets:[{ data: genSeries(7).map(x=>5+Math.random()*18), borderColor:'#a855f7', backgroundColor:'rgba(168,85,247,.12)', tension:.4, fill:true }] }, options:{plugins:{legend:{display:false}},elements:{point:{radius:0}},scales:{x:{display:false},y:{display:false}},responsive:true,maintainAspectRatio:false} });
+
+      const range=parseInt(document.getElementById('salesRange').value,10); const s=genSeries(range);
+      salesChart = new Chart(document.getElementById('salesChart'), { data:{ labels:s.map(x=>x.label), datasets:[ {type:'bar', label:'Revenue', data:s.map(x=>x.revenue), backgroundColor:'rgba(16,185,129,.25)', borderColor:'#10b981', borderWidth:1, borderRadius:6}, {type:'line', label:'Orders', data:s.map(x=>x.orders), borderColor:'#2563eb', tension:.35, yAxisID:'y1'} ] }, options:{ responsive:true, maintainAspectRatio:false, interaction:{mode:'index',intersect:false}, plugins:{legend:{labels:{boxWidth:12}}}, scales:{ y:{ beginAtZero:true, title:{display:true,text:'Revenue (₱)'} }, y1:{ beginAtZero:true, position:'right', grid:{drawOnChartArea:false}, title:{display:true,text:'Orders'} } } }});
+
+      // Reports charts
+      buildReports(); seedActivity();
+    }
+    function buildReports(){ const d = genSeries(parseInt(document.getElementById('repRange').value,10));
+      new Chart(document.getElementById('repSales'), { data:{ labels:d.map(x=>x.label), datasets:[ {type:'bar', label:'Revenue', data:d.map(x=>x.revenue), backgroundColor:'rgba(16,185,129,.25)', borderColor:'#10b981', borderWidth:1, borderRadius:6}, {type:'line', label:'Orders', data:d.map(x=>x.orders), borderColor:'#2563eb', tension:.35, yAxisID:'y1'} ] }, options:{ responsive:true, maintainAspectRatio:false, interaction:{mode:'index',intersect:false}, plugins:{legend:{labels:{boxWidth:12}}}, scales:{ y:{ beginAtZero:true, title:{display:true,text:'Revenue (₱)'} }, y1:{ beginAtZero:true, position:'right', grid:{drawOnChartArea:false}, title:{display:true,text:'Orders'} } } }});
+      new Chart(document.getElementById('repDemo'), { type:'doughnut', data:{ labels:['18–24','25–34','35–44','45+'], datasets:[{ data:[20,42,26,12], backgroundColor:['#10b981','#3b82f6','#f59e0b','#a855f7'] }] }, options:{responsive:true,maintainAspectRatio:false}});
+      new Chart(document.getElementById('repPeak'), { type:'bar', data:{ labels:['9am','12pm','3pm','6pm','9pm'], datasets:[{ label:'Orders', data:[12,48,22,60,18], backgroundColor:'#3b82f6' }] }, options:{responsive:true,maintainAspectRatio:false}});
+      new Chart(document.getElementById('repTrends'), { type:'line', data:{ labels:Array.from({length:12},(_,i)=>`W${i+1}`), datasets:[{ label:'Repeat Customers', data:Array.from({length:12},()=> 30+Math.random()*40), borderColor:'#a855f7', fill:false }, { label:'New Customers', data:Array.from({length:12},()=> 40+Math.random()*50), borderColor:'#10b981', fill:false }] }, options:{responsive:true,maintainAspectRatio:false} });
+      document.getElementById('perfTable').innerHTML = [ ['Michael Chen',86,'12m','4.7'], ['Jessica Park',75,'14m','4.6'], ['David Kim',64,'11m','4.8'] ].map(r=>`<tr><td class='px-3 py-2'>${r[0]}</td><td class='px-3 py-2'>${r[1]}</td><td class='px-3 py-2'>${r[2]}</td><td class='px-3 py-2'>${r[3]}</td></tr>`).join('');
+      document.getElementById('repeatRate').textContent = '38%';
+      document.getElementById('aov').textContent = '₱245';
+      document.getElementById('topZip').textContent = '6015';
+    }
+    document.getElementById('salesRange').addEventListener('change',()=>{ const s=genSeries(parseInt(document.getElementById('salesRange').value,10)); salesChart.data.labels=s.map(x=>x.label); salesChart.data.datasets[0].data=s.map(x=>x.revenue); salesChart.data.datasets[1].data=s.map(x=>x.orders); salesChart.update(); });
+    document.getElementById('repRange').addEventListener('change',buildReports);
+
+    // KPI helpers
+    function refreshKPI(){ const revenue=(Math.random()*50000)+20000; const orders=Math.floor(Math.random()*120)+80; const prep=10+Math.floor(Math.random()*9); const active=Math.floor(Math.random()*35)+10; set('kpiRevenue','₱'+Math.round(revenue).toLocaleString()); set('kpiOrders',orders); set('kpiPrep',prep+'m'); set('kpiActive',active); pctBadge('kpiRevenueDelta'); pctBadge('kpiOrdersDelta'); pctBadge('kpiPrepDelta',true); }
+    function pctBadge(id,lowerIsGood=false){ const el=document.getElementById(id); const v=((Math.random()*10)-5).toFixed(1); const up = parseFloat(v)>=0; el.textContent=(up?'+':'')+v+'%'; el.className='text-sm '+ ((up&&!lowerIsGood)||(!up&&lowerIsGood)?'text-emerald-600':'text-rose-600'); }
+
+    // Ops snapshot + activity
+    function opCard(label,val,icon,cls){ return `<div class="rounded-lg ${cls} p-3"><div class="text-xs uppercase tracking-wide">${label}</div><div class="mt-1 flex items-center gap-2"><i class="fa-solid ${icon}"></i><span class="text-xl font-bold">${val}</span></div></div>` }
+    function paintOps(){ const el=document.getElementById('opsGrid'); const counts={ new:Math.floor(Math.random()*8), preparing:Math.floor(Math.random()*6), ready:Math.floor(Math.random()*5), completed:Math.floor(Math.random()*20)+20 }; el.innerHTML = `${opCard('New',counts.new,'fa-sparkles','bg-slate-100 text-slate-700')} ${opCard('Preparing',counts.preparing,'fa-kitchen-set','bg-amber-100 text-amber-700')} ${opCard('Ready',counts.ready,'fa-bell','bg-blue-100 text-blue-700')} ${opCard('Completed',counts.completed,'fa-circle-check','bg-emerald-100 text-emerald-700')}`; }
+    const feed=[]; function seedActivity(){ ['Order #4258 marked Ready','New app order placed (#4261)','Stock low: Iced Latte','Promo activated: Lunch 20%','Refund processed (#4249)'].forEach(pushActivity); }
+    function pushActivity(t){ feed.unshift({t,ts:new Date()}); const list=document.getElementById('activityFeed'); list.innerHTML = feed.slice(0,8).map(i=>`<li class='text-sm text-slate-700 flex items-center gap-2'><span class='inline-block w-2 h-2 rounded-full bg-emerald-500'></span><span>${esc(i.t)}</span><span class='ml-auto text-xs text-slate-400'>${timeAgo(i.ts)}</span></li>`).join(''); }
+    function timeAgo(d){ const diff=Math.floor((Date.now()-d.getTime())/60000); if(diff<=0) return 'now'; if(diff<60) return diff+'m'; return Math.floor(diff/60)+'h'; }
+
+    // Utils
+    function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.remove('hidden'); setTimeout(()=>t.classList.add('hidden'),2000); }
+    function esc(s){ return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#039;'}[c])) }
+    function set(id,v){ document.getElementById(id).textContent = v }
+    function val(id){ return document.getElementById(id).value }
+    function setVal(id,v){ document.getElementById(id).value = v }
+    function navTo(key){ document.querySelector(`[data-section="${key}"]`).click() }
+    function dateShort(ts){ const d=new Date(ts); return d.toLocaleDateString(undefined,{month:'short',day:'numeric'}) }
+    function catName(id){ const c=categories.find(x=>x.id===id); return c?c.name:'—' }
+    function isoLocal(ts){ const d=new Date(ts); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,16) }
+
+    // Init
+    initDashboard(); paintOps(); setInterval(()=>{refreshKPI(); paintOps()}, 10000);
+        // ========== Nice-to-have runtime glue (post-init) ==========
+
+    // Ensure key lists are populated if user lands deep-linked
+    renderHours?.();
+    renderCategories?.();
+    renderItems?.();
+    renderCampaigns?.();
+
+    // Global Escape key closes any open modal
+    document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    ['twoFAModal','forgotModal','staffModal','categoryModal','itemModal'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('hidden');
+    });
+    });
+
+    // Simple hash-based nav support (#dashboard, #menu, etc.)
+    (function syncHashRoute(){
+    const map = ['dashboard','restaurant','staff','menu','promotions','reports'];
+    function go() {
+        const key = (location.hash.replace('#','') || 'dashboard').toLowerCase();
+        const target = map.includes(key) ? key : 'dashboard';
+        const btn = document.querySelector(`[data-section="${target}"]`);
+        if (btn) btn.click();
+    }
+    window.addEventListener('hashchange', go);
+    go();
+    })();
+
+    // Debounced search handlers (menu & staff) for smoother typing
+    function debounce(fn, ms=200){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), ms); }; }
+    document.getElementById('menuSearch')?.addEventListener('input', debounce(()=>renderItems(), 200));
+    document.getElementById('staffSearch')?.addEventListener('input', debounce(()=>renderStaff(), 200));
+
+    // Guard: prevent form submissions from page-navigating (safety net)
+    // Keep the safety guard for other forms, but SKIP itemForm.
+    ['profileForm','staffForm','campaignForm','adminLoginForm'].forEach(fid=>{
+    const f=document.getElementById(fid); if(!f) return;
+    f.addEventListener('submit', (e)=> e.preventDefault());
+    });
+
+
+    // Tooltips for toggles (quick UX sugar)
+    document.body.addEventListener('mouseenter', (e)=>{
+    const t=e.target.closest('[data-tip]'); if(!t) return;
+    t.setAttribute('title', t.getAttribute('data-tip'));
+    }, true);
+
+    // Persist service settings (radius/fee/min order) in localStorage (demo)
+    ['deliveryRadius','deliveryFee','minOrder'].forEach(id=>{
+    const el=document.getElementById(id); if(!el) return;
+    const k='ff_'+id; if(localStorage.getItem(k)) el.value = localStorage.getItem(k);
+    el.addEventListener('input', ()=> localStorage.setItem(k, el.value));
+    });
+
+    // Highlight current nav item on first load (if not triggered by click)
+    (function ensureActiveNav(){
+    const current = document.querySelector('.nav-item.active');
+    if (!current) document.querySelector('[data-section="dashboard"]')?.classList.add('active');
+    })();
+
+
+    
+
+  </script>
+</body>
+</html>

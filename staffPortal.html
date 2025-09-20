@@ -1,0 +1,2465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FastFood - Restaurant Management System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        :root {
+            --primary: #10b981;
+            --primary-dark: #059669;
+            --secondary: #6366f1;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --light-bg: #f8fafc;
+        }
+        
+        body {
+            background-color: #f1f5f9;
+            overflow-x: hidden;
+        }
+
+        .content-section:not(.active) {
+            display: none;
+        }
+
+        .dashboard-card {
+            transition: all 0.3s ease;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        
+        .dashboard-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .order-card {
+            transition: all 0.3s ease;
+            border-left: 4px solid transparent;
+        }
+        
+        .order-card.new {
+            border-left-color: var(--primary);
+        }
+        .order-card.queued {
+            border-left-color: #a1a1aa;
+        }
+        
+        .order-card.preparing {
+            border-left-color: var(--warning);
+        }
+        
+        .order-card.ready {
+            border-left-color: var(--secondary);
+        }
+
+        .kitchen-card {
+            transition: all 0.3s ease;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        
+        .kitchen-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .order-card.completed {
+            border-left-color: #a1a1aa;
+            opacity: 0.8;
+        }
+        
+        .status-badge {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .status-new {
+            background-color: #DCFCE7;
+            color: #16A34A;
+        }
+
+        .status-queued {
+            background-color: #F4F4F5;
+            color: #71717A;
+        }
+        
+        .status-preparing {
+            background-color: #FEF3C7;
+            color: #D97706;
+        }
+        
+        .status-ready {
+            background-color: #DBEAFE;
+            color: #2563EB;
+        }
+        
+        .status-completed {
+            background-color: #F4F4F5;
+            color: #71717A;
+        }
+
+        .progress-ring {
+            transform: rotate(-90deg);
+        }
+        
+        .progress-ring-circle {
+            transition: stroke-dashoffset 0.35s;
+            transform-origin: 50% 50%;
+        }
+        
+        .nav-item {
+            transition: all 0.2s ease;
+            border-radius: 8px;
+        }
+        
+        .nav-item:hover {
+            background: rgba(16, 185, 129, 0.1);
+        }
+        
+        .nav-item.active {
+            background: #10b981;
+            color: white;
+        }
+        
+        .notification-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #ef4444;
+            position: absolute;
+            top: -2px;
+            right: -2px;
+        }
+        
+        .custom-scrollbar {
+            scrollbar-width: thin;
+            scrollbar-color: #10b981 #f1f5f9;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #10b981;
+            border-radius: 3px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #059669;
+        }
+        
+        .section-header {
+            font-size: 14px;
+            font-weight: 600;
+            color: #6b7280;
+            margin-top: 16px;
+            margin-bottom: 12px;
+            padding-left: 8px;
+            border-left: 3px solid #10b981;
+        }
+        
+        .queue-number {
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background-color: #10b981;
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        
+        .queue-number.completed {
+            background-color: #6366f1;
+        }
+        
+        .tab-active {
+            border-bottom: 3px solid #10b981;
+            color: #10b981;
+            font-weight: 600;
+        }
+        
+        .content-section {
+            display: none;
+        }
+        
+        .content-section.active {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+
+       
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        /* Mobile responsive styles */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+                position: fixed;
+                z-index: 40;
+                height: 100vh;
+                transition: transform 0.3s ease;
+            }
+            
+            .sidebar.open {
+                transform: translateX(0);
+            }
+            
+            .overlay {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background-color: rgba(0, 0, 0, 0.5);
+                z-index: 30;
+            }
+            
+            .overlay.open {
+                display: block;
+            }
+            
+            .mobile-header {
+                display: flex;
+            }
+        }
+
+         @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .staff-status-online {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: #10b981;
+            margin-right: 8px;
+        }
+        
+        .staff-status-offline {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: #a1a1aa;
+            margin-right: 8px;
+        }
+        
+        .station-busy {
+            border-left: 4px solid var(--warning);
+        }
+        
+        .station-available {
+            border-left: 4px solid var(--primary);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex">
+    <!-- Mobile Overlay -->
+    <div class="overlay" id="overlay"></div>
+
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar w-64 bg-white shadow-sm flex-shrink-0 h-screen sticky top-0 z-40" id="sidebar">
+        <div class="p-6">
+            <div class="flex items-center space-x-3 mb-8">
+                <div class="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-utensils text-white"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold text-gray-800">FastFood</h1>
+                    <p class="text-xs text-gray-500">Restaurant Dashboard</p>
+                </div>
+            </div>
+            
+            <nav class="space-y-1">
+                <button class="nav-item active w-full flex items-center space-x-3 px-4 py-3 text-left" data-section="dashboard">
+                    <i class="fas fa-tachometer-alt w-5"></i>
+                    <span class="font-medium">Dashboard</span>
+                </button>
+                
+                <button class="nav-item w-full flex items-center space-x-3 px-4 py-3 text-left text-gray-700" data-section="orders">
+                    <i class="fas fa-shopping-bag w-5"></i>
+                    <span class="font-medium">Orders</span>
+                    <span class="ml-auto bg-red-500 text-white text-xs rounded-full px-2 py-1">5</span>
+                </button>
+                
+                <button class="nav-item w-full flex items-center space-x-3 px-4 py-3 text-left text-gray-700" data-section="kitchen">
+                    <i class="fas fa-fire w-5"></i>
+                    <span class="font-medium">Kitchen</span>
+                    <span class="ml-auto bg-orange-500 text-white text-xs rounded-full px-2 py-1">3</span>
+                </button>
+                
+                <button class="nav-item w-full flex items-center space-x-3 px-4 py-3 text-left text-gray-700" data-section="menu">
+                    <i class="fas fa-utensils w-5"></i>
+                    <span class="font-medium">Menu</span>
+                </button>
+                
+                <button class="nav-item w-full flex items-center space-x-3 px-4 py-3 text-left text-gray-700" data-section="customers">
+                    <i class="fas fa-users w-5"></i>
+                    <span class="font-medium">Customers</span>
+                </button>
+                
+                <div class="border-t border-gray-200 pt-4 mt-4">
+                <button id="sidebarLogoutBtn" class="nav-item w-full flex items-center space-x-3 px-4 py-3 text-left text-red-600">
+                    <i class="fas fa-sign-out-alt w-5"></i>
+                    <span class="font-medium">Logout</span>
+                </button>
+
+                </div>
+            </nav>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 overflow-y-auto h-screen">
+        <!-- Top Bar -->
+        <div id="topbar" class="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <button class="mr-4 text-gray-500 md:hidden" id="menu-toggle">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800">Dashboard Overview</h2>
+                        <p class="text-sm text-gray-500">Welcome back, John! Here's what's happening today.</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    <div class="relative hidden md:block">
+                        <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                        <input type="text" placeholder="Search..." class="pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                    </div>
+                    
+                    <button class="relative p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg">
+                        <i class="fas fa-bell text-xl"></i>
+                        <span class="notification-dot"></span>
+                    </button>
+                    
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                            <i class="fas fa-user text-green-600"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- =====================
+        LOGIN SECTION
+        ===================== -->
+        <div id="login-section"
+            class="content-section active fixed inset-0 z-50 bg-gray-100 grid place-items-center">
+        <div class="bg-white rounded-lg shadow-lg p-8 w-full max-w-md">
+                <!-- Header -->
+                <div class="text-center mb-8">
+                    <div class="w-16 h-16 bg-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-utensils text-2xl text-white"></i>
+                    </div>
+                    <h1 class="text-2xl font-bold text-gray-800">Staff Login</h1>
+                    <p class="text-gray-600 mt-2">Accounts are created by Admin. Role permissions enforced.</p>
+                </div>
+
+                <!-- Login Form -->
+                <form id="loginForm" class="space-y-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Staff ID</label>
+                        <input 
+                            type="text" 
+                            id="staffId" 
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500" 
+                            placeholder="Enter your staff ID" 
+                            required
+                        >
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                        <input 
+                            type="password" 
+                            id="password" 
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500" 
+                            placeholder="Enter your password" 
+                            required
+                        >
+                    </div>
+                    
+                    <div class="text-center">
+                        <button type="button" onclick="showForgotPassword()" class="text-green-600 hover:text-green-700 font-medium">
+                            Forgot your password?
+                        </button>
+                    </div>
+
+                    <!-- Login Button -->
+                    <div class="mt-6">
+                        <button 
+                            type="submit" 
+                            class="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg font-medium transition-colors"
+                        >
+                            Login
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Footer -->
+                <div class="mt-6 text-center text-sm text-gray-500">
+                    <p>© 2024 Restaurant Management System</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Forgot Password Modal -->
+<div id="forgotPasswordModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-bold text-gray-800">Reset Password</h3>
+            <button onclick="hideForgotPassword()" class="text-gray-500 hover:text-gray-700">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <p class="text-gray-600 mb-6">Enter your staff ID and we'll send you a password reset link.</p>
+        
+        <form id="forgotPasswordForm" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Staff ID</label>
+                <input 
+                    type="text" 
+                    id="resetStaffId" 
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500" 
+                    placeholder="Enter your staff ID" 
+                    required
+                >
+            </div>
+            
+            <div class="flex justify-end space-x-3 mt-6">
+                <button 
+                    type="button" 
+                    onclick="hideForgotPassword()" 
+                    class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
+                >
+                    Cancel
+                </button>
+                <button 
+                    type="submit" 
+                    class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                >
+                    Send Reset Link
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+        <!-- =====================
+            DASHBOARD (DROP‑IN)
+        ====================== -->
+        <div class="content-section p-6 space-y-6" id="dashboard-section">
+        <!-- Top KPIs -->
+        <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <!-- Revenue Today -->
+            <article class="dashboard-card bg-white rounded-xl p-5 shadow-sm grid grid-cols-[auto,1fr] gap-4 items-center">
+            <div class="w-12 h-12 rounded-lg bg-emerald-100 grid place-items-center">
+                <i class="fa-solid fa-dollar-sign text-emerald-600"></i>
+            </div>
+            <div>
+                <p class="text-sm font-medium text-slate-600">Today's Revenue</p>
+                <div class="flex items-baseline gap-2">
+                <h3 id="kpiRevenue" class="text-2xl font-bold text-slate-900">$0.00</h3>
+                <span id="kpiRevenueDelta" class="text-sm"></span>
+                </div>
+            </div>
+            <div class="col-span-2 h-10">
+                <canvas id="sparkRevenue"></canvas>
+            </div>
+            </article>
+
+            <!-- Total Orders Today -->
+            <article class="dashboard-card bg-white rounded-xl p-5 shadow-sm grid grid-cols-[auto,1fr] gap-4 items-center">
+            <div class="w-12 h-12 rounded-lg bg-blue-100 grid place-items-center">
+                <i class="fa-solid fa-bag-shopping text-blue-600"></i>
+            </div>
+            <div>
+                <p class="text-sm font-medium text-slate-600">Orders Today</p>
+                <div class="flex items-baseline gap-2">
+                <h3 id="kpiOrders" class="text-2xl font-bold text-slate-900">0</h3>
+                <span id="kpiOrdersDelta" class="text-sm"></span>
+                </div>
+            </div>
+            <div class="col-span-2 h-10">
+                <canvas id="sparkOrders"></canvas>
+            </div>
+            </article>
+
+            <!-- Avg Prep Time -->
+            <article class="dashboard-card bg-white rounded-xl p-5 shadow-sm grid grid-cols-[auto,1fr] gap-4 items-center">
+            <div class="w-12 h-12 rounded-lg bg-amber-100 grid place-items-center">
+                <i class="fa-solid fa-stopwatch text-amber-600"></i>
+            </div>
+            <div>
+                <p class="text-sm font-medium text-slate-600">Avg. Prep Time</p>
+                <div class="flex items-baseline gap-2">
+                <h3 id="kpiPrep" class="text-2xl font-bold text-slate-900">0m</h3>
+                <span id="kpiPrepDelta" class="text-sm"></span>
+                </div>
+            </div>
+            <div class="col-span-2 h-10">
+                <canvas id="sparkPrep"></canvas>
+            </div>
+            </article>
+
+            <!-- Kitchen Load -->
+            <article class="dashboard-card bg-white rounded-xl p-5 shadow-sm grid grid-cols-[auto,1fr] gap-4 items-center">
+            <div class="w-12 h-12 rounded-lg bg-purple-100 grid place-items-center">
+                <i class="fa-solid fa-fire text-purple-600"></i>
+            </div>
+            <div>
+                <p class="text-sm font-medium text-slate-600">Active in Kitchen</p>
+                <div class="flex items-baseline gap-2">
+                <h3 id="kpiActive" class="text-2xl font-bold text-slate-900">0</h3>
+                <span class="text-sm text-slate-500">(preparing + ready)</span>
+                </div>
+            </div>
+            <div class="col-span-2 h-10">
+                <canvas id="sparkKitchen"></canvas>
+            </div>
+            </article>
+        </section>
+
+        <!-- Charts -->
+        <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Sales Overview -->
+            <div class="lg:col-span-2 bg-white rounded-xl p-6 shadow-sm">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-bold text-slate-900">Sales Overview</h3>
+                <select id="salesRange" class="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent">
+                <option value="7">Last 7 Days</option>
+                <option value="30">Last 30 Days</option>
+                <option value="90">Last 90 Days</option>
+                </select>
+            </div>
+            <div class="h-80"><canvas id="salesChart"></canvas></div>
+            </div>
+
+            <!-- Operations Snapshot -->
+            <div class="bg-white rounded-xl p-6 shadow-sm grid gap-5 content-start">
+            <h3 class="text-lg font-bold text-slate-900">Ops Snapshot</h3>
+            <div id="opsGrid" class="grid grid-cols-2 gap-3">
+                <!-- Cards filled by JS -->
+            </div>
+            <div>
+                <h4 class="text-sm font-semibold text-slate-700 mb-2">Activity</h4>
+                <ul id="activityFeed" class="space-y-2 max-h-48 overflow-y-auto custom-scrollbar"></ul>
+            </div>
+            </div>
+        </section>
+
+        <!-- Popular Items & Customers -->
+        <section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Popular Items -->
+            <div class="bg-white rounded-xl p-6 shadow-sm">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-bold text-slate-900">Top Menu Items</h3>
+                <button id="refreshItems" class="text-emerald-600 text-sm font-medium">Refresh</button>
+            </div>
+            <div class="overflow-hidden border border-slate-200 rounded-lg">
+                <table class="min-w-full text-sm">
+                <thead class="bg-slate-50 text-slate-600">
+                    <tr>
+                    <th class="px-3 py-2 text-left">Item</th>
+                    <th class="px-3 py-2 text-right">Qty</th>
+                    <th class="px-3 py-2 text-right">Revenue</th>
+                    </tr>
+                </thead>
+                <tbody id="itemsTable" class="divide-y divide-slate-100 bg-white"></tbody>
+                </table>
+            </div>
+            </div>
+
+            <!-- Customers Today -->
+            <div class="bg-white rounded-xl p-6 shadow-sm">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-bold text-slate-900">Customers Today</h3>
+                <span id="custTrend" class="text-xs px-2 py-1 rounded-full bg-emerald-50 text-emerald-700">Live</span>
+            </div>
+            <div class="h-64"><canvas id="customersChart"></canvas></div>
+            </div>
+        </section>
+        </div>
+
+
+        <!-- Orders Content Section (DROP-IN) -->
+        <div class="content-section p-6" id="orders-section">
+        <div class="bg-white rounded-xl shadow-sm p-6">
+            <div class="flex items-center justify-between mb-6">
+            <h1 class="text-2xl font-bold text-gray-800">ORDER LIST</h1>
+            <div class="flex items-center space-x-3">
+                <div class="relative">
+                <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                <input id="orderSearch" type="text" placeholder="Search orders..." class="pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                </div>
+                <button id="refreshOrders" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
+                <i class="fas fa-sync-alt mr-2"></i>Refresh
+                </button>
+            </div>
+            </div>
+
+            <!-- Status Tabs -->
+            <div class="border-b border-gray-200 mb-6">
+            <div class="flex space-x-6">
+                <button id="tab-all" class="tab-active pb-3 px-1 text-gray-700">All Orders</button>
+                <button id="tab-new" class="pb-3 px-1 text-gray-500 hover:text-gray-700">New</button>
+                <button id="tab-preparing" class="pb-3 px-1 text-gray-500 hover:text-gray-700">Preparing</button>
+                <button id="tab-ready" class="pb-3 px-1 text-gray-500 hover:text-gray-700">Ready</button>
+                <button id="tab-completed" class="pb-3 px-1 text-gray-500 hover:text-gray-700">Completed</button>
+            </div>
+            </div>
+
+            <!-- Orders Grid -->
+            <div id="ordersContainer" class="orders-container grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-h-[calc(100vh-220px)] overflow-y-auto p-1"></div>
+        </div>
+        </div>
+
+        
+        <!-- Kitchen Content Section -->
+        <div class="content-section p-6" id="kitchen-section">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                <div class="kitchen-card bg-white rounded-xl p-6 shadow-sm">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-600">Orders in Queue</p>
+                            <p class="text-2xl font-bold text-gray-800">12</p>
+                            <p class="text-sm text-green-600 mt-1">
+                                <i class="fas fa-arrow-down mr-1"></i>3 from yesterday
+                            </p>
+                        </div>
+                        <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-list-ol text-blue-600 text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="kitchen-card bg-white rounded-xl p-6 shadow-sm">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-600">Avg. Prep Time</p>
+                            <p class="text-2xl font-bold text-gray-800">14m</p>
+                            <p class="text-sm text-green-600 mt-1">
+                                <i class="fas fa-arrow-down mr-1"></i>2m from yesterday
+                            </p>
+                        </div>
+                        <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-clock text-green-600 text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="kitchen-card bg-white rounded-xl p-6 shadow-sm">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-600">Items Prepared</p>
+                            <p class="text-2xl font-bold text-gray-800">86</p>
+                            <p class="text-sm text-red-600 mt-1">
+                                <i class="fas fa-arrow-up mr-1"></i>12 from yesterday
+                            </p>
+                        </div>
+                        <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-utensils text-purple-600 text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="kitchen-card bg-white rounded-xl p-6 shadow-sm">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-600">On Duty Staff</p>
+                            <p class="text-2xl font-bold text-gray-800">4/5</p>
+                            <p class="text-sm text-gray-600 mt-1">
+                                <i class="fas fa-user-clock mr-1"></i>1 break ongoing
+                            </p>
+                        </div>
+                        <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-users text-orange-600 text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+                <!-- Order Queue -->
+                <div class="lg:col-span-2 bg-white rounded-xl shadow-sm p-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-xl font-bold text-gray-800">Order Queue</h2>
+                        <div class="flex items-center space-x-3">
+                            <div class="bg-gray-100 rounded-lg px-4 py-2">
+                                <span class="text-sm text-gray-600">Queue Time: </span>
+                                <span class="font-bold text-gray-800">22m 15s</span>
+                            </div>
+                            <button class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
+                                <i class="fas fa-sync-alt mr-2"></i>Refresh
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Status Tabs (keep yours or use these IDs) -->
+                <div class="border-b border-gray-200 mb-6">
+                <div class="flex space-x-6">
+                    <button id="ktab-all" class="tab-active pb-3 px-1 text-gray-700">All Orders</button>
+                    <button id="ktab-queued" class="pb-3 px-1 text-gray-500 hover:text-gray-700">Queued</button>
+                    <button id="ktab-preparing" class="pb-3 px-1 text-gray-500 hover:text-gray-700">Preparing</button>
+                    <button id="ktab-ready" class="pb-3 px-1 text-gray-500 hover:text-gray-700">Ready</button>
+                </div>
+                </div>
+
+                <!-- Orders Grid (REPLACES the long static list) -->
+                <div id="kitchenOrdersContainer"
+                    class="orders-container grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-h-[500px] overflow-y-auto custom-scrollbar p-1">
+                </div>
+
+                <!-- Kitchen Status -->
+                <div class="bg-white rounded-xl shadow-sm p-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-xl font-bold text-gray-800">Kitchen Status</h2>
+                        <span class="bg-green-100 text-green-800 text-sm px-3 py-1 rounded-full">Active</span>
+                    </div>
+
+                    <!-- Staff Status -->
+                    <div class="mb-6">
+                        <h3 class="text-lg font-medium text-gray-800 mb-3">Staff On Duty</h3>
+                        <div class="space-y-3">
+                            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                <div class="flex items-center">
+                                    <div class="staff-status-online"></div>
+                                    <span class="font-medium text-gray-800">Michael Chen</span>
+                                </div>
+                                <span class="text-sm text-gray-600">Grill Station</span>
+                            </div>
+                            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                <div class="flex items-center">
+                                    <div class="staff-status-online"></div>
+                                    <span class="font-medium text-gray-800">Jessica Park</span>
+                                </div>
+                                <span class="text-sm text-gray-600">Fryer Station</span>
+                            </div>
+                            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                <div class="flex items-center">
+                                    <div class="staff-status-online"></div>
+                                    <span class="font-medium text-gray-800">David Kim</span>
+                                </div>
+                                <span class="text-sm text-gray-600">Salad Station</span>
+                            </div>
+                            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                <div class="flex items-center">
+                                    <div class="staff-status-offline"></div>
+                                    <span class="font-medium text-gray-800">Sophia Rodriguez</span>
+                                </div>
+                                <span class="text-sm text-gray-600">On Break</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Stations Status -->
+                    <div>
+                        <h3 class="text-lg font-medium text-gray-800 mb-3">Stations Status</h3>
+                        <div class="space-y-3">
+                            <div class="station-available p-3 bg-gray-50 rounded-lg">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="font-medium text-gray-800">Grill Station</span>
+                                    <span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">Available</span>
+                                </div>
+                                <div class="text-sm text-gray-600">
+                                    <p>Current Order: #351</p>
+                                    <p>Time Remaining: 08:32</p>
+                                </div>
+                            </div>
+                            <div class="station-busy p-3 bg-gray-50 rounded-lg">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="font-medium text-gray-800">Fryer Station</span>
+                                    <span class="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full">Busy</span>
+                                </div>
+                                <div class="text-sm text-gray-600">
+                                    <p>Current Order: #350</p>
+                                    <p>Time Remaining: 12:45</p>
+                                </div>
+                            </div>
+                            <div class="station-available p-3 bg-gray-50 rounded-lg">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="font-medium text-gray-800">Salad Station</span>
+                                    <span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">Available</span>
+                                </div>
+                                <div class="text-sm text-gray-600">
+                                    <p>Current Order: None</p>
+                                    <p>Idle Time: 05:12</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <div class="content-section p-6" id="menu-section">
+        <div class="bg-white rounded-xl shadow-sm p-6">
+            <div class="flex items-center justify-between mb-6 gap-3 flex-wrap">
+            <h1 class="text-2xl font-bold text-gray-800">MENU MANAGEMENT</h1>
+
+            <!-- Toolbar -->
+            <div class="flex items-center gap-2">
+                <div class="relative">
+                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                <input id="menuSearch" type="text" placeholder="Search items..."
+                        class="pl-10 pr-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent w-56">
+                </div>
+
+                <select id="menuCategory" class="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                <option value="">All Categories</option>
+                </select>
+
+                <button id="bulkInStock"   class="bg-green-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-green-700"><i class="fas fa-box-open mr-2"></i>In Stock</button>
+                <button id="bulkOutStock"  class="bg-gray-200 text-gray-800 px-3 py-2 rounded-lg text-sm hover:bg-gray-300"><i class="fas fa-box mr-2"></i>Out of Stock</button>
+                <button id="openPromo"     class="bg-amber-500 text-white px-3 py-2 rounded-lg text-sm hover:bg-amber-600"><i class="fas fa-tags mr-2"></i>Daily Special</button>
+                <button id="clearPromo"    class="bg-slate-100 text-slate-800 px-3 py-2 rounded-lg text-sm hover:bg-slate-200"><i class="fas fa-eraser mr-2"></i>Clear Specials</button>
+            </div>
+            </div>
+
+            <!-- Active specials banner -->
+            <div id="specialsBanner" class="hidden mb-4 rounded-lg bg-amber-50 text-amber-800 border border-amber-200 px-4 py-3 text-sm">
+            <i class="fas fa-bullhorn mr-1"></i>
+            <span>Daily specials active.</span>
+            </div>
+
+            <!-- Menu Grid -->
+            <div class="overflow-hidden border border-gray-200 rounded-xl">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                <tr class="text-left text-xs font-semibold text-gray-600">
+                    <th class="px-4 py-3 w-10">
+                    <input id="selectAllMenu" type="checkbox" class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
+                    </th>
+                    <th class="px-4 py-3">Item</th>
+                    <th class="px-4 py-3">Category</th>
+                    <th class="px-4 py-3">Price</th>
+                    <th class="px-4 py-3">Availability</th>
+                    <th class="px-4 py-3">Special</th>
+                    <th class="px-4 py-3 w-40">Actions</th>
+                </tr>
+                </thead>
+                <tbody id="menuGrid" class="divide-y divide-gray-100 bg-white"></tbody>
+            </table>
+            </div>
+        </div>
+
+        <!-- Daily Special Modal -->
+        <div id="promoModal" class="fixed inset-0 z-50 hidden">
+            <div class="absolute inset-0 bg-black/40"></div>
+            <div class="relative h-full w-full grid place-items-center p-4">
+            <div class="w-full max-w-md bg-white rounded-2xl shadow-xl p-6">
+                <h2 class="text-lg font-semibold text-gray-900 mb-2">Apply Daily Special</h2>
+                <p class="text-sm text-gray-600 mb-4">Set a label and discount percentage. Applies to selected items (or all filtered, if none selected).</p>
+
+                <div class="space-y-3">
+                <div>
+                    <label class="text-xs font-medium text-gray-700">Label</label>
+                    <input id="promoLabel" type="text" placeholder="e.g. Lunch Special"
+                        class="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-transparent">
+                </div>
+                <div>
+                    <label class="text-xs font-medium text-gray-700">Discount (%)</label>
+                    <input id="promoPct" type="number" min="1" max="90" step="1" value="20"
+                        class="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-transparent">
+                </div>
+                </div>
+
+                <div class="flex gap-2 mt-5">
+                <button id="applyPromo" class="flex-1 rounded-lg bg-amber-500 text-white font-semibold py-2.5 hover:bg-amber-600">
+                    Apply
+                </button>
+                <button id="closePromo" class="flex-1 rounded-lg bg-gray-100 text-gray-800 font-semibold py-2.5 hover:bg-gray-200">
+                    Cancel
+                </button>
+                </div>
+            </div>
+            </div>
+        </div>
+        </div>
+
+        <!-- CUSTOMERS (drop-in) -->
+        <div class="content-section p-6 h-[calc(100vh-100px)]" id="customers-section">
+        <div class="bg-white rounded-xl shadow-sm p-6 h-full flex flex-col">
+            <div class="flex items-center justify-between gap-3 flex-wrap mb-6">
+            <h1 class="text-2xl font-bold text-gray-800">CUSTOMER COMMUNICATION</h1>
+
+            <div class="flex items-center gap-2">
+                <div class="relative">
+                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                <input id="custSearch" type="text" placeholder="Search customers or order #..."
+                        class="pl-10 pr-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent w-64">
+                </div>
+                <select id="custFilter" class="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                <option value="">All</option>
+                <option value="has-notes">With Special Instructions</option>
+                <option value="open-inquiry">With Open Inquiries</option>
+                </select>
+            </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Customers list -->
+            <div class="lg:col-span-1">
+                <div class="overflow-hidden border border-gray-200 rounded-xl">
+                <table class="min-w-full text-sm">
+                    <thead class="bg-gray-50 text-gray-600">
+                    <tr>
+                        <th class="px-3 py-2 text-left">Customer</th>
+                        <th class="px-3 py-2 text-left">Last Order</th>
+                        <th class="px-3 py-2 text-right">Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody id="customersTable" class="divide-y divide-gray-100 bg-white"></tbody>
+                </table>
+                </div>
+            </div>
+
+            <!-- Conversation + Notes -->
+            <div class="lg:col-span-2">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Special Instructions / Profile -->
+                <section class="rounded-xl border border-gray-200 bg-white p-5">
+                    <div class="flex items-center justify-between mb-3">
+                    <h2 class="text-lg font-semibold text-gray-900">Special Instructions</h2>
+                    <label class="inline-flex items-center gap-2 text-sm">
+                        <input id="allowAutoReply" type="checkbox" class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500">
+                        <span class="text-gray-700">Allow Auto-Reply</span>
+                    </label>
+                    </div>
+                    <div id="customerCard" class="space-y-3">
+                    <p class="text-gray-500 text-sm">Select a customer to view details.</p>
+                    </div>
+                </section>
+
+                <!-- Inquiry Console -->
+                <section class="rounded-xl border border-gray-200 bg-white p-5">
+                    <div class="flex items-center justify-between mb-3">
+                    <h2 class="text-lg font-semibold text-gray-900">Inquiry Console</h2>
+                    <div class="text-xs text-gray-500" id="inquiryMeta"></div>
+                    </div>
+
+                    <div id="thread" class="h-64 overflow-y-auto custom-scrollbar rounded-lg border border-gray-100 p-3 bg-gray-50 mb-3">
+                    <div class="text-sm text-gray-500">No conversation yet.</div>
+                    </div>
+
+                    <!-- Quick Replies -->
+                    <div class="flex flex-wrap gap-2 mb-3">
+                    <button class="px-3 py-1.5 text-xs rounded bg-gray-100 text-gray-800 hover:bg-gray-200 quick-reply" data-reply="We're open daily from 9:00 AM to 9:00 PM.">
+                        Hours
+                    </button>
+                    <button class="px-3 py-1.5 text-xs rounded bg-gray-100 text-gray-800 hover:bg-gray-200 quick-reply" data-reply="Yes, we deliver within 5km. Delivery fee is ₱59.">
+                        Delivery Area
+                    </button>
+                    <button class="px-3 py-1.5 text-xs rounded bg-gray-100 text-gray-800 hover:bg-gray-200 quick-reply" data-reply="We can note common allergens. Please confirm any severe allergies.">
+                        Allergy Policy
+                    </button>
+                    <button class="px-3 py-1.5 text-xs rounded bg-gray-100 text-gray-800 hover:bg-gray-200 quick-reply" data-reply="Your order is being prepared and should be ready soon.">
+                        Order Status
+                    </button>
+                    </div>
+
+                    <!-- Composer -->
+                    <div class="flex gap-2">
+                    <input id="messageInput" type="text" placeholder="Type a reply..."
+                            class="flex-1 rounded-lg border border-gray-200 px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-transparent">
+                    <button id="sendMsg" class="rounded-lg bg-emerald-600 text-white px-4 py-2 hover:bg-emerald-700">
+                        Send
+                    </button>
+                    <button id="resolveInquiry" class="rounded-lg bg-slate-100 text-slate-800 px-4 py-2 hover:bg-slate-200">
+                        Resolve
+                    </button>
+                    </div>
+                </section>
+                </div>
+            </div>
+            </div>
+        </div>
+        </div>
+
+        <!-- LOGOUT CONFIRM MODAL -->
+        <div id="logoutConfirmModal" class="fixed inset-0 z-[60] hidden items-center justify-center bg-black/40 p-4">
+        <div class="bg-white w-full max-w-md rounded-xl shadow-xl p-6">
+            <div class="flex items-center gap-3 mb-3">
+            <div class="w-10 h-10 rounded-full bg-red-100 text-red-600 grid place-items-center">
+                <i class="fas fa-sign-out-alt"></i>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900">Confirm Logout</h3>
+            </div>
+            <p class="text-gray-600 mb-6">Are you sure you want to log out?</p>
+            <div class="flex gap-3">
+            <button id="confirmLogout" class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg font-medium">
+                Yes, Logout
+            </button>
+            <button id="cancelLogout" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800 py-2 rounded-lg font-medium">
+                Cancel
+            </button>
+            </div>
+        </div>
+        </div>
+
+        <!-- LOGOUT OVERLAY -->
+        <div id="logout-section" class="content-section hidden fixed inset-0 z-50 bg-gray-100 grid place-items-center">
+        <div class="bg-white rounded-lg shadow-lg p-8 w-full max-w-md text-center">
+            <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <i class="fas fa-sign-out-alt text-2xl text-red-600"></i>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-800 mb-2">You have been logged out</h1>
+            <p class="text-gray-600 mb-6">Your session has ended. Please login again to continue.</p>
+            <button onclick="returnToLogin()"
+                    class="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg font-medium">
+            Back to Login
+            </button>
+        </div>
+        </div>
+
+
+
+
+
+
+    </main>
+
+
+
+
+    <script>
+        // ========================
+        // Login Scripts
+        // ========================
+        
+        // On page load, show login
+        document.addEventListener('DOMContentLoaded', showLogin);
+
+        function showLogin() {
+            document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+            document.getElementById('login-section').classList.add('active');
+            document.getElementById('sidebar').style.display = 'none';
+            document.getElementById('topbar').style.display = 'none';
+        }
+
+        function showApp(sectionId = 'dashboard-section') {
+            document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+            document.getElementById(sectionId).classList.add('active');
+            document.getElementById('sidebar').style.display = 'block';
+            document.getElementById('topbar').style.display = 'block';
+        }
+
+        // Login form handler
+        document.getElementById('loginForm')?.addEventListener('submit', function (e) {
+            e.preventDefault();
+            // TODO: validate staffId & password
+            showApp('dashboard-section');
+        });
+
+            // Show forgot password modal
+        function showForgotPassword() {
+            document.getElementById('forgotPasswordModal').classList.remove('hidden');
+        }
+        
+        // Hide forgot password modal
+        function hideForgotPassword() {
+            document.getElementById('forgotPasswordModal').classList.add('hidden');
+        }
+        
+        // Handle forgot password form submission
+        document.getElementById('forgotPasswordForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const staffId = document.getElementById('resetStaffId').value;
+            
+            // In a real application, you would send this to your backend
+            alert(`Password reset link would be sent for staff ID: ${staffId}`);
+            hideForgotPassword();
+        });
+        
+        // Close modal when clicking outside
+        document.getElementById('forgotPasswordModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                hideForgotPassword();
+            }
+        });
+
+
+
+
+        // Toggle sidebar on mobile
+        document.getElementById('menu-toggle').addEventListener('click', function() {
+            document.getElementById('sidebar').classList.toggle('open');
+            document.getElementById('overlay').classList.toggle('open');
+        });
+
+        document.getElementById('overlay').addEventListener('click', function() {
+            document.getElementById('sidebar').classList.remove('open');
+            this.classList.remove('open');
+        });
+
+        // Navigation functionality
+        const navItems = document.querySelectorAll('.nav-item');
+        const contentSections = document.querySelectorAll('.content-section');
+
+        navItems.forEach(item => {
+            item.addEventListener('click', function() {
+                // Remove active class from all nav items
+                navItems.forEach(navItem => {
+                    navItem.classList.remove('active');
+                    navItem.classList.add('text-gray-700');
+                });
+                
+                // Add active class to clicked nav item
+                this.classList.add('active');
+                this.classList.remove('text-gray-700');
+                
+                // Hide all content sections
+                contentSections.forEach(section => {
+                    section.classList.remove('active');
+                });
+                
+                // Show the selected content section
+                const sectionId = this.getAttribute('data-section');
+                document.getElementById(`${sectionId}-section`).classList.add('active');
+            });
+        });
+
+        // Sample data for charts
+        const revenueData = {
+            labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+            datasets: [{
+                label: 'Revenue',
+                data: [1200, 1900, 1500, 2180, 2450, 3210, 2890],
+                borderColor: '#10b981',
+                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                tension: 0.4,
+                fill: true
+            }]
+        };
+
+        // Initialize charts
+        const revenueChart = new Chart(
+            document.getElementById('revenueChart'),
+            {
+                type: 'line',
+                data: revenueData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                drawBorder: false
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            }
+        );
+
+        // ========================
+        // Dashboard Data + Helpers
+        // ========================
+        // Uses your existing global `orders` array when present (falls back to demo).
+        const __hasOrders = Array.isArray(window.orders) && window.orders.length;
+        const demoOrders = [
+        { id:'1001', total: 24.5,  status:'completed', orderTime: Date.now()-86400000*0.2 },
+        { id:'1002', total: 18.2,  status:'ready',     orderTime: Date.now()-3600000*1 },
+        { id:'1003', total: 12.9,  status:'preparing', orderTime: Date.now()-3600000*2 },
+        { id:'1004', total: 52.4,  status:'completed', orderTime: Date.now()-86400000*1.1 },
+        { id:'1005', total: 28.3,  status:'new',       orderTime: Date.now()-3600000*0.5 },
+        ];
+        const ORDERS_SRC = __hasOrders ? window.orders : demoOrders;
+
+        function startOfDay(ts=Date.now()){ const d=new Date(ts); d.setHours(0,0,0,0); return d.getTime(); }
+        function isToday(ts){ return ts >= startOfDay(); }
+
+        function computeKPIs(){
+        const today = ORDERS_SRC.filter(o => isToday(new Date(o.orderTime).getTime ? new Date(o.orderTime).getTime() : o.orderTime));
+        const revenue = today.reduce((s,o)=> s + (o.total||0), 0);
+        const ordersCount = today.length;
+        const preparing = ORDERS_SRC.filter(o=>o.status==='preparing').length;
+        const ready = ORDERS_SRC.filter(o=>o.status==='ready').length;
+        const activeKitchen = preparing + ready;
+        // naive demo: avg prep time randomish 10-18 mins
+        const avgPrep = 10 + Math.floor(Math.random()*9);
+        return { revenue, ordersCount, activeKitchen, avgPrep };
+        }
+
+        function fmtMoney(n){ return `$${(n||0).toFixed(2)}`; }
+        function pctBadge(el, pct){
+        el.className='text-sm';
+        const up = pct >= 0; el.textContent = `${up?'+':''}${pct.toFixed(1)}%`; 
+        el.classList.add(up?'text-emerald-600':'text-rose-600');
+        }
+
+        // generate simple series
+        function genSeries(days){
+        const arr = Array.from({length: days}, (_,i)=> ({
+            label: days<=7? ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][ (new Date(Date.now()- (days-1-i)*86400000)).getDay() ] : i+1,
+            revenue: 1000 + Math.random()*2500,
+            orders: 40 + Math.random()*80,
+            customers: 20 + Math.random()*60,
+            prep: 10 + Math.random()*8,
+            kitchen: 2 + Math.random()*8
+        }));
+        return arr;
+        }
+
+        // ========================
+        // Charts
+        // ========================
+        let salesChart, customersChart, sparkCharts = {};
+        const CHART_OPTS_MINI = {
+        responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{ display:false }, tooltip:{ enabled:false } },
+        elements:{ point:{ radius:0 } }, scales:{ x:{ display:false }, y:{ display:false } }
+        };
+
+        function initDashboard(){
+        // KPI values
+        refreshKPI();
+
+        // Sparklines
+        sparkCharts.revenue = new Chart(document.getElementById('sparkRevenue'), { type:'line', data:{ labels:[1,2,3,4,5,6,7], datasets:[{ data: genSeries(7).map(x=>x.revenue), borderColor:'#10b981', backgroundColor:'rgba(16,185,129,.12)', tension:.4, fill:true }] }, options:CHART_OPTS_MINI });
+        sparkCharts.orders  = new Chart(document.getElementById('sparkOrders'),  { type:'line', data:{ labels:[1,2,3,4,5,6,7], datasets:[{ data: genSeries(7).map(x=>x.orders),  borderColor:'#3b82f6', backgroundColor:'rgba(59,130,246,.12)', tension:.4, fill:true }] }, options:CHART_OPTS_MINI });
+        sparkCharts.prep    = new Chart(document.getElementById('sparkPrep'),    { type:'line', data:{ labels:[1,2,3,4,5,6,7], datasets:[{ data: genSeries(7).map(x=>x.prep),    borderColor:'#f59e0b', backgroundColor:'rgba(245,158,11,.12)', tension:.4, fill:true }] }, options:CHART_OPTS_MINI });
+        sparkCharts.kitchen = new Chart(document.getElementById('sparkKitchen'), { type:'line', data:{ labels:[1,2,3,4,5,6,7], datasets:[{ data: genSeries(7).map(x=>x.kitchen), borderColor:'#a855f7', backgroundColor:'rgba(168,85,247,.12)', tension:.4, fill:true }] }, options:CHART_OPTS_MINI });
+
+        // Sales Overview (mixed bar/line)
+        const range = parseInt(document.getElementById('salesRange').value,10);
+        const series = genSeries(range);
+        salesChart = new Chart(document.getElementById('salesChart'), {
+            data:{
+            labels: series.map(x=>x.label),
+            datasets:[
+                { type:'bar', label:'Revenue', data: series.map(x=>x.revenue), backgroundColor:'rgba(16,185,129,.25)', borderColor:'#10b981', borderWidth:1, borderRadius:6 },
+                { type:'line', label:'Orders',  data: series.map(x=>x.orders),  borderColor:'#2563eb', tension:.35, yAxisID:'y1' }
+            ]
+            },
+            options:{ responsive:true, maintainAspectRatio:false,
+            interaction:{ mode:'index', intersect:false },
+            plugins:{ legend:{ labels:{ boxWidth:12 } }},
+            scales:{ y:{ beginAtZero:true, title:{ display:true, text:'Revenue ($)'} }, y1:{ beginAtZero:true, position:'right', grid:{ drawOnChartArea:false }, title:{ display:true, text:'Orders' } } }
+            }
+        });
+
+        // Customers chart (hourly today)
+        const custLabels = Array.from({length:12},(_,i)=> `${8+i}:00`);
+        const custData = custLabels.map(()=> Math.round(5+Math.random()*18));
+        customersChart = new Chart(document.getElementById('customersChart'), {
+            type:'line',
+            data:{ labels:custLabels, datasets:[{ data:custData, borderColor:'#22c55e', backgroundColor:'rgba(34,197,94,.12)', tension:.35, fill:true, label:'Customers' }] },
+            options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false }}, scales:{ x:{ grid:{ display:false }}, y:{ beginAtZero:true }}}
+        });
+
+        // Ops snapshot + activity
+        paintOps();
+        seedActivity();
+        }
+
+        function refreshKPI(){
+        const { revenue, ordersCount, activeKitchen, avgPrep } = computeKPIs();
+        document.getElementById('kpiRevenue').textContent = fmtMoney(revenue);
+        document.getElementById('kpiOrders').textContent  = ordersCount.toString();
+        document.getElementById('kpiActive').textContent  = activeKitchen.toString();
+        document.getElementById('kpiPrep').textContent    = `${avgPrep}m`;
+
+        // fake trend deltas for demo (−5%..+5%)
+        pctBadge(document.getElementById('kpiRevenueDelta'), (Math.random()*10)-5);
+        pctBadge(document.getElementById('kpiOrdersDelta'),  (Math.random()*10)-5);
+        pctBadge(document.getElementById('kpiPrepDelta'),   -((Math.random()*10)-5)); // lower is better
+        }
+
+        // Ops cards (live counts by status)
+        function paintOps(){
+        const el = document.getElementById('opsGrid');
+        const counts = ['new','preparing','ready','completed'].reduce((acc,s)=>{ acc[s]=ORDERS_SRC.filter(o=>o.status===s).length; return acc; },{});
+        el.innerHTML = `
+            ${opCard('New', counts.new, 'fa-sparkles', 'bg-slate-100 text-slate-700')}
+            ${opCard('Preparing', counts.preparing, 'fa-kitchen-set', 'bg-amber-100 text-amber-700')}
+            ${opCard('Ready', counts.ready, 'fa-bell', 'bg-blue-100 text-blue-700')}
+            ${opCard('Completed', counts.completed, 'fa-circle-check', 'bg-emerald-100 text-emerald-700')}
+        `;
+        }
+        function opCard(label, val, icon, cls){
+        return `<div class="rounded-lg ${cls} p-3">
+            <div class="text-xs uppercase tracking-wide">${label}</div>
+            <div class="mt-1 flex items-center gap-2"><i class="fa-solid ${icon}"></i><span class="text-xl font-bold">${val}</span></div>
+        </div>`;
+        }
+
+        // Activity feed
+        const feed = [];
+        function seedActivity(){
+        const sample = [
+            'Order #4258 marked Ready',
+            'New web order placed (#4261)',
+            'Kitchen added +5m to #4257',
+            'Order #4256 Completed',
+            'Out-of-Stock → In-Stock: Fries'
+        ];
+        for (let i=0;i<5;i++) pushActivity(sample[i]);
+        }
+        function pushActivity(text){
+        feed.unshift({ text, ts: new Date() });
+        const list = document.getElementById('activityFeed');
+        list.innerHTML = feed.slice(0,8).map(item => `
+            <li class="text-sm text-slate-700 flex items-center gap-2">
+            <span class="inline-block w-2 h-2 rounded-full bg-emerald-500"></span>
+            <span>${escapeHtml(item.text)}</span>
+            <span class="ml-auto text-xs text-slate-400">${timeAgo(item.ts)}</span>
+            </li>`).join('');
+        }
+
+        function timeAgo(d){ const diff = Math.floor((Date.now()-d.getTime())/60000); if(diff<=0) return 'now'; if(diff<60) return `${diff}m`; const h=Math.floor(diff/60); return `${h}h`; }
+        function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[c])); }
+
+        // Interactions
+        document.addEventListener('DOMContentLoaded', () => {
+        // Range change
+        document.getElementById('salesRange').addEventListener('change', (e)=>{
+            const days = parseInt(e.target.value,10);
+            const s = genSeries(days);
+            salesChart.data.labels = s.map(x=>x.label);
+            salesChart.data.datasets[0].data = s.map(x=>x.revenue);
+            salesChart.data.datasets[1].data = s.map(x=>x.orders);
+            salesChart.update();
+        });
+
+        document.getElementById('refreshItems').addEventListener('click', ()=> buildItemsTable());
+
+        initDashboard();
+        buildItemsTable();
+
+        // light auto-refresh of KPIs and ops every 10s
+        setInterval(()=>{ refreshKPI(); paintOps(); }, 10000);
+        });
+
+        // Build Top Items table (demo aggregation over ORDERS_SRC)
+        function buildItemsTable(){
+        const rows = document.getElementById('itemsTable');
+        const map = new Map();
+        // Attempt to aggregate items if present in source orders
+        ORDERS_SRC.forEach(o => {
+            (o.items||[]).forEach(it => {
+            const key = it.name;
+            const cur = map.get(key) || { qty:0, revenue:0 };
+            cur.qty += it.quantity||1;
+            cur.revenue += (it.price||0) * (it.quantity||1);
+            map.set(key, cur);
+            });
+        });
+        const data = Array.from(map.entries()).map(([name,v])=>({ name, ...v }))
+            .sort((a,b)=> b.qty - a.qty).slice(0,7);
+
+        if (!data.length){
+            rows.innerHTML = `<tr><td colspan="3" class="px-3 py-10 text-center text-slate-500">No item data yet.</td></tr>`;
+            return;
+        }
+        rows.innerHTML = data.map(r => `
+            <tr>
+            <td class="px-3 py-2">${escapeHtml(r.name)}</td>
+            <td class="px-3 py-2 text-right">${r.qty}</td>
+            <td class="px-3 py-2 text-right">$${r.revenue.toFixed(2)}</td>
+            </tr>`).join('');
+        }
+
+
+
+        // ========================
+        // Order Data + Helpers
+        // ========================
+        const orders = [
+            { id: '346', customer: 'John Doe',   status: 'completed', items: [{name:'Vegetable Mixups',price:5.30,quantity:1},{name:'Prawn Mix Salad',price:5.30,quantity:1}], total: 10.60, orderTime:'23 Feb 2021, 08:28 PM', queuePosition: 1 },
+            { id: '349', customer: 'Sarah Wilson', status: 'new',       items: [{name:'Vegetable Fritters with Egg',price:5.30,quantity:1},{name:'Fresh Prawn mix salad',price:5.30,quantity:1}], total: 10.60, orderTime:'23 Feb 2021, 08:28 PM', queuePosition: 1 },
+            { id: '350', customer: 'Tom Brown',    status: 'preparing', items: [{name:'Fresh Meat with salad',price:25.30,quantity:1},{name:'Vegetable Mixups',price:5.30,quantity:1}], total: 30.60, orderTime:'23 Feb 2021, 07:28 PM', queuePosition: 1 },
+            { id: '351', customer: 'Lisa Davis',   status: 'ready',     items: [{name:'Vegetable Fritters with Egg',price:5.30,quantity:1},{name:'Fresh Prawn mix salad',price:5.30,quantity:1}], total: 10.60, orderTime:'23 Feb 2021, 08:28 PM', queuePosition: 1 },
+            { id: '352', customer: 'Robert Miller',status: 'new',       items: [{name:'Vegetable Mixups',price:5.30,quantity:2}], total: 10.60, orderTime:'23 Feb 2021, 07:45 PM', queuePosition: 2 },
+            { id: '353', customer: 'Emily Wilson', status: 'preparing', items: [{name:'Fresh Meat',price:25.30,quantity:1}], total: 25.30, orderTime:'23 Feb 2021, 08:15 PM', queuePosition: 2 },
+            { id: '354', customer: 'David Clark',  status: 'ready',     items: [{name:'Prawn Mix Salad',price:5.30,quantity:3}], total: 15.90, orderTime:'23 Feb 2021, 08:30 PM', queuePosition: 2 }
+        ];
+
+        let currentFilter = 'all';
+        let searchQuery = '';
+
+        // ----- Init -----
+        document.addEventListener('DOMContentLoaded', () => {
+            setupTabListeners();
+            setupSearchAndRefresh();
+            renderOrders(currentFilter, searchQuery);
+
+            // Event delegation for card action buttons
+            document.getElementById('ordersContainer').addEventListener('click', onOrdersContainerClick);
+        });
+
+        // ----- UI Wiring -----
+        function setupTabListeners() {
+            ['all','new','preparing','ready','completed'].forEach(tab => {
+            const el = document.getElementById(`tab-${tab}`);
+            if (!el) return;
+            el.addEventListener('click', () => {
+                // Tab styling
+                document.querySelectorAll('[id^="tab-"]').forEach(t => {
+                t.classList.remove('tab-active'); t.classList.add('text-gray-500');
+                });
+                el.classList.add('tab-active'); el.classList.remove('text-gray-500');
+
+                // Update filter + re-render
+                currentFilter = tab;
+                renderOrders(currentFilter, searchQuery);
+            });
+            });
+        }
+
+        function setupSearchAndRefresh() {
+            const search = document.getElementById('orderSearch');
+            const refresh = document.getElementById('refreshOrders');
+            if (search) {
+            search.addEventListener('input', (e) => {
+                searchQuery = e.target.value.trim().toLowerCase();
+                renderOrders(currentFilter, searchQuery);
+            });
+            }
+            if (refresh) {
+            refresh.addEventListener('click', () => renderOrders(currentFilter, searchQuery));
+            }
+        }
+
+        // ----- Actions (Accept / Reject / Mark Ready / Complete) -----
+        function onOrdersContainerClick(e) {
+            const btn = e.target.closest('[data-action]');
+            if (!btn) return;
+
+            const card = e.target.closest('[data-order-id]');
+            if (!card) return;
+
+            const id = card.getAttribute('data-order-id');
+            const action = btn.getAttribute('data-action');
+
+            const order = orders.find(o => o.id === id);
+            if (!order) return;
+
+            // Apply transition rules
+            switch (action) {
+            case 'accept':     // New -> Preparing
+                if (order.status === 'new')     updateOrderStatus(id, 'preparing');
+                break;
+            case 'reject':     // New -> Completed (acts as "remove from active")
+                if (order.status === 'new')     updateOrderStatus(id, 'completed');
+                break;
+            case 'mark-ready': // Preparing -> Ready
+                if (order.status === 'preparing') updateOrderStatus(id, 'ready');
+                break;
+            case 'complete':   // Ready -> Completed
+                if (order.status === 'ready')   updateOrderStatus(id, 'completed');
+                break;
+            default: break;
+            }
+        }
+
+        function updateOrderStatus(id, newStatus) {
+            const idx = orders.findIndex(o => o.id === id);
+            if (idx === -1) return;
+            orders[idx].status = newStatus;
+            // Optional: maintain queuePosition or recompute here
+            renderOrders(currentFilter, searchQuery);
+        }
+
+        // ----- Render -----
+        function renderOrders(filter, q = '') {
+            const container = document.getElementById('ordersContainer');
+            container.innerHTML = '';
+
+            const byQuery = (o) =>
+            !q ||
+            o.id.toLowerCase().includes(q) ||
+            o.customer.toLowerCase().includes(q) ||
+            o.items.some(it => it.name.toLowerCase().includes(q));
+
+            if (filter === 'all') {
+            const active = orders.filter(o => o.status !== 'completed' && byQuery(o));
+            const done   = orders.filter(o => o.status === 'completed' && byQuery(o));
+
+            if (active.length === 0 && done.length === 0) return showEmptyState(container);
+
+            if (active.length) {
+                container.appendChild(makeHeader('ACTIVE ORDERS'));
+                active.forEach(o => container.appendChild(createOrderCard(o)));
+            }
+            if (done.length) {
+                container.appendChild(makeHeader('COMPLETED ORDERS'));
+                done.forEach(o => container.appendChild(createOrderCard(o)));
+            }
+            } else {
+            const filtered = orders.filter(o => o.status === filter && byQuery(o));
+            if (!filtered.length) return showEmptyState(container, filter);
+            filtered.forEach(o => container.appendChild(createOrderCard(o)));
+            }
+        }
+
+        function makeHeader(text) {
+            const div = document.createElement('div');
+            div.className = 'col-span-full';
+            div.innerHTML = `<div class="section-header">${text}</div>`;
+            return div;
+        }
+
+        // ----- Card -----
+        function createOrderCard(order) {
+            const el = document.createElement('div');
+            el.className = `order-card ${order.status} bg-white rounded-lg shadow-sm p-4`;
+            el.setAttribute('data-order-id', order.id);
+
+            const queueClass = order.status === 'completed' ? 'queue-number completed' : 'queue-number';
+
+            el.innerHTML = `
+            <div class="flex items-start justify-between mb-3">
+                <div class="flex items-center space-x-2">
+                <div class="${queueClass}">${order.queuePosition}</div>
+                <h3 class="font-bold text-gray-800">#${order.id}</h3>
+                </div>
+                <span class="status-badge status-${order.status}">
+                ${cap(order.status)}
+                </span>
+            </div>
+
+            <div class="mb-4">
+                <p class="text-sm text-gray-600 mb-1">${order.customer}</p>
+                <p class="text-xs text-gray-500">${order.orderTime}</p>
+            </div>
+
+            <div class="space-y-2 mb-4">
+                ${order.items.map(it => `
+                <div class="flex justify-between items-center text-sm">
+                    <span class="text-gray-700">${it.quantity}x ${escapeHtml(it.name)}</span>
+                    <span class="text-gray-600">$${it.price.toFixed(2)}</span>
+                </div>`).join('')}
+            </div>
+
+            <div class="flex items-center justify-between border-t border-gray-100 pt-3">
+                <span class="text-sm font-medium text-gray-700">${order.items.length} ${order.items.length === 1 ? 'Item' : 'Items'}</span>
+                <span class="font-bold text-green-600">$${order.total.toFixed(2)}</span>
+            </div>
+
+            <div class="mt-4 flex space-x-2">
+                ${order.status === 'new' ? `
+                <button class="flex-1 bg-green-600 text-white py-2 rounded text-sm font-medium hover:bg-green-700 transition-colors" data-action="accept">
+                    Accept
+                </button>
+                <button class="flex-1 bg-gray-200 text-gray-800 py-2 rounded text-sm font-medium hover:bg-gray-300 transition-colors" data-action="reject">
+                    Reject
+                </button>` : ''}
+
+                ${order.status === 'preparing' ? `
+                <button class="flex-1 bg-blue-600 text-white py-2 rounded text-sm font-medium hover:bg-blue-700 transition-colors" data-action="mark-ready">
+                    Mark Ready
+                </button>` : ''}
+
+                ${order.status === 'ready' ? `
+                <button class="flex-1 bg-green-600 text-white py-2 rounded text-sm font-medium hover:bg-green-700 transition-colors" data-action="complete">
+                    Complete
+                </button>` : ''}
+
+                ${order.status === 'completed' ? `
+                <button class="flex-1 bg-gray-200 text-gray-800 py-2 rounded text-sm font-medium hover:bg-gray-300 transition-colors">
+                    View Details
+                </button>` : ''}
+            </div>
+            `;
+            return el;
+        }
+
+        // ----- Helpers -----
+        function cap(s){ return s.charAt(0).toUpperCase() + s.slice(1); }
+        function showEmptyState(container, status='all'){
+            container.innerHTML = `
+            <div class="col-span-full text-center py-12">
+                <div class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-receipt text-3xl text-gray-400"></i>
+                </div>
+                <h3 class="text-lg font-medium text-gray-600 mb-2">No orders found</h3>
+                <p class="text-gray-500">There are no ${status === 'all' ? '' : status} orders at the moment.</p>
+            </div>`;
+        }
+        function escapeHtml(str){
+            return String(str).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[s]));
+        }
+
+
+        // ========================
+        // Kitchen Data + Helpers
+        // ========================
+        let kitchenFilter = 'all';
+
+        // Timers state (seconds remaining per order id)
+        const kTimers = new Map();
+        // Default prep time (seconds)
+        const DEFAULT_PREP_SECS = 15 * 60;
+
+        // ---- Tabs ----
+        ['all','queued','preparing','ready'].forEach(t => {
+        const el = document.getElementById(`ktab-${t}`);
+        if (!el) return;
+        el.addEventListener('click', () => {
+            document.querySelectorAll('[id^="ktab-"]').forEach(b => {
+            b.classList.remove('tab-active'); b.classList.add('text-gray-500');
+            });
+            el.classList.add('tab-active'); el.classList.remove('text-gray-500');
+            kitchenFilter = t;
+            renderKitchen(kitchenFilter);
+        });
+        });
+
+        // ---- Actions (event delegation) ----
+        document.getElementById('kitchenOrdersContainer').addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-k-action]');
+        if (!btn) return;
+        const card = e.target.closest('[data-order-id]');
+        if (!card) return;
+
+        const id = card.getAttribute('data-order-id');
+        const action = btn.getAttribute('data-k-action');
+        const o = orders.find(x => x.id === id);
+        if (!o) return;
+
+        switch(action){
+            case 'start': // new -> preparing
+            if (o.status === 'new') {
+                o.status = 'preparing';
+                if (!kTimers.has(o.id)) kTimers.set(o.id, DEFAULT_PREP_SECS);
+            }
+            break;
+            case 'mark-ready': // preparing -> ready
+            if (o.status === 'preparing') {
+                o.status = 'ready';
+                kTimers.delete(o.id);
+            }
+            break;
+            case 'complete': // ready -> completed
+            if (o.status === 'ready') {
+                o.status = 'completed';
+            }
+            break;
+            case 'add-time': // +5 minutes to timer
+            if (o.status === 'preparing') {
+                kTimers.set(o.id, (kTimers.get(o.id) ?? 0) + 5 * 60);
+            }
+            break;
+        }
+        renderKitchen(kitchenFilter);
+        });
+
+        // ---- Render ----
+        function renderKitchen(filter='all'){
+        const container = document.getElementById('kitchenOrdersContainer');
+        container.innerHTML = '';
+
+        // Select orders visible in kitchen (exclude completed)
+        const kitchenOrders = orders.filter(o => o.status !== 'completed');
+
+        // Filter mapping: 'queued' means status === 'new'
+        const filtered = kitchenOrders.filter(o => {
+            if (filter === 'all') return true;
+            if (filter === 'queued') return o.status === 'new';
+            return o.status === filter; // preparing / ready
+        });
+
+        if (filtered.length === 0) {
+            container.innerHTML = `
+            <div class="col-span-full text-center py-12">
+                <div class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-bowl-food text-3xl text-gray-400"></i>
+                </div>
+                <h3 class="text-lg font-medium text-gray-600 mb-2">No orders</h3>
+                <p class="text-gray-500">Nothing in ${filter==='all' ? 'the queue' : filter} right now.</p>
+            </div>`;
+            return;
+        }
+
+        filtered.forEach(o => container.appendChild(kitchenCard(o)));
+        }
+
+        // ---- Card ----
+        function kitchenCard(o){
+        const el = document.createElement('div');
+        const uiStatus = (o.status === 'new') ? 'queued' : o.status;     // for badge/class
+        const badgeClass = `status-badge status-${uiStatus}`;
+        const cardClass =
+            `order-card ${uiStatus} bg-white rounded-lg shadow-sm p-4`;
+
+        // ensure a timer exists for preparing
+        if (o.status === 'preparing' && !kTimers.has(o.id)) {
+            kTimers.set(o.id, DEFAULT_PREP_SECS);
+        }
+
+        el.className = cardClass;
+        el.setAttribute('data-order-id', o.id);
+
+        const queueClass = uiStatus === 'completed' ? 'queue-number completed' : 'queue-number';
+        const timerHtml = (o.status === 'preparing')
+            ? `<div class="flex items-center text-sm text-orange-600">
+                <i class="fas fa-clock mr-1"></i>
+                <span class="font-mono k-timer" data-order-id="${o.id}">${fmt(kTimers.get(o.id) ?? DEFAULT_PREP_SECS)}</span>
+            </div>`
+            : '';
+
+        const actionsHtml =
+            (o.status === 'new')
+            ? `
+                <button class="flex-1 bg-orange-600 text-white py-2 rounded text-sm font-medium hover:bg-orange-700 transition-colors" data-k-action="start">
+                <i class="fas fa-play mr-1"></i>Start Preparing
+                </button>
+                <button class="bg-gray-200 text-gray-800 py-2 px-4 rounded text-sm font-medium hover:bg-gray-300 transition-colors">
+                <i class="fas fa-info"></i>
+                </button>`
+            : (o.status === 'preparing')
+            ? `
+                <button class="flex-1 bg-green-600 text-white py-2 rounded text-sm font-medium hover:bg-green-700 transition-colors" data-k-action="mark-ready">
+                <i class="fas fa-check mr-1"></i>Mark Ready
+                </button>
+                <button class="flex-1 bg-blue-600 text-white py-2 rounded text-sm font-medium hover:bg-blue-700 transition-colors" data-k-action="add-time">
+                <i class="fas fa-plus mr-1"></i>Add Time
+                </button>
+                <button class="bg-gray-200 text-gray-800 py-2 px-4 rounded text-sm font-medium hover:bg-gray-300 transition-colors">
+                <i class="fas fa-info"></i>
+                </button>`
+            : (o.status === 'ready')
+            ? `
+                <button class="flex-1 bg-green-600 text-white py-2 rounded text-sm font-medium hover:bg-green-700 transition-colors" data-k-action="complete">
+                <i class="fas fa-check mr-1"></i>Complete
+                </button>
+                <button class="bg-gray-200 text-gray-800 py-2 px-4 rounded text-sm font-medium hover:bg-gray-300 transition-colors">
+                <i class="fas fa-info"></i>
+                </button>`
+            : '';
+
+        el.innerHTML = `
+            <div class="flex items-start justify-between mb-3">
+            <div class="flex items-center space-x-2">
+                <div class="${queueClass}">${o.queuePosition}</div>
+                <h3 class="font-bold text-gray-800">#${o.id}</h3>
+            </div>
+            <div class="flex items-center space-x-4">
+                ${timerHtml}
+                <span class="${badgeClass}">${cap(uiStatus)}</span>
+            </div>
+            </div>
+
+            <div class="mb-4">
+            <p class="text-sm text-gray-600 mb-1">${escapeHtml(o.customer)} • ${o.table ?? 'Takeaway'}</p>
+            <p class="text-xs text-gray-500">${escapeHtml(o.orderTime)}</p>
+            </div>
+
+            <div class="space-y-2 mb-4">
+            ${o.items.map(it => `
+                <div class="flex justify-between items-center text-sm">
+                <div class="flex items-center">
+                    <span class="text-gray-700">${it.quantity}x ${escapeHtml(it.name)}</span>
+                    ${stationPill(it.station)}
+                </div>
+                <span class="text-gray-600">$${it.price.toFixed(2)}</span>
+                </div>`).join('')}
+            </div>
+
+            <div class="flex items-center justify-between border-t border-gray-100 pt-3">
+            <span class="text-sm font-medium text-gray-700">${o.items.length} ${o.items.length === 1 ? 'Item' : 'Items'}</span>
+            <span class="font-bold text-green-600">$${o.total.toFixed(2)}</span>
+            </div>
+
+            <div class="mt-4 flex gap-2 flex-wrap">
+            ${actionsHtml}
+            </div>
+        `;
+        return el;
+        }
+
+        // ---- Timer tick ----
+        setInterval(() => {
+        // decrement all running timers
+        let changed = false;
+        kTimers.forEach((secs, id) => {
+            if (secs <= 0) return;
+            kTimers.set(id, secs - 1);
+            changed = true;
+        });
+        if (!changed) return;
+
+        // update visible timers without full re-render
+        document.querySelectorAll('.k-timer').forEach(span => {
+            const id = span.getAttribute('data-order-id');
+            const secs = kTimers.get(id);
+            if (typeof secs === 'number') {
+            span.textContent = fmt(secs);
+            // turn red under 2min
+            const parent = span.closest('.flex.items-center');
+            if (secs <= 120) {
+                parent?.classList.add('text-red-600');
+                parent?.classList.remove('text-orange-600');
+            }
+            }
+        });
+        }, 1000);
+
+        // ---- Helpers ----
+        function stationPill(station){
+        if (!station) return '';
+        const map = {
+            Grill:  'bg-yellow-100 text-yellow-800',
+            Fryer:  'bg-blue-100 text-blue-800',
+            Salad:  'bg-blue-100 text-blue-800',
+            Oven:   'bg-purple-100 text-purple-800'
+        };
+        const cls = map[station] || 'bg-gray-100 text-gray-700';
+        return `<span class="ml-2 text-xs ${cls} px-2 py-1 rounded">${escapeHtml(station)}</span>`;
+        }
+        function fmt(secs){
+        const m = Math.max(0, Math.floor(secs/60));
+        const s = Math.max(0, secs % 60);
+        return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+        }
+        function cap(s){ return s.charAt(0).toUpperCase() + s.slice(1); }
+        function escapeHtml(str){
+        return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+        }
+
+        // ---- First paint ----
+        renderKitchen('all');
+
+
+
+        /* -------------------------
+        MENU STATE (demo data)
+        ------------------------- */
+        const menuItems = [
+        { id: 'm101', name: 'Classic Burger',     category: 'Mains',    price: 6.99, inStock: true,  promo: null },
+        { id: 'm102', name: 'Chicken Burger',     category: 'Mains',    price: 7.49, inStock: true,  promo: null },
+        { id: 'm103', name: 'Veggie Wrap',        category: 'Mains',    price: 5.99, inStock: true,  promo: null },
+        { id: 'm201', name: 'Fries',              category: 'Sides',    price: 2.99, inStock: true,  promo: null },
+        { id: 'm202', name: 'Onion Rings',        category: 'Sides',    price: 3.49, inStock: false, promo: null },
+        { id: 'm301', name: 'Iced Tea',           category: 'Drinks',   price: 1.99, inStock: true,  promo: null },
+        { id: 'm302', name: 'Milkshake',          category: 'Drinks',   price: 3.99, inStock: true,  promo: { label: 'Happy Hour', pct: 25 } },
+        { id: 'm401', name: 'Chocolate Sundae',   category: 'Desserts', price: 3.49, inStock: true,  promo: null }
+        ];
+
+        // Selection + filters
+        let selectedIds = new Set();
+        let searchTerm = '';
+        let categoryFilter = '';
+
+        /* -------------------------
+        INIT
+        ------------------------- */
+        document.addEventListener('DOMContentLoaded', () => {
+        hydrateCategoryFilter();
+        renderMenu();
+
+        // Toolbar
+        document.getElementById('menuSearch')?.addEventListener('input', (e) => {
+            searchTerm = e.target.value.trim().toLowerCase();
+            renderMenu();
+        });
+        document.getElementById('menuCategory')?.addEventListener('change', (e) => {
+            categoryFilter = e.target.value;
+            renderMenu();
+        });
+
+        // Bulk actions
+        document.getElementById('bulkInStock')?.addEventListener('click', () => bulkAvailability(true));
+        document.getElementById('bulkOutStock')?.addEventListener('click', () => bulkAvailability(false));
+        document.getElementById('openPromo')?.addEventListener('click', openPromoModal);
+        document.getElementById('clearPromo')?.addEventListener('click', clearPromotions);
+
+        // Select all
+        document.getElementById('selectAllMenu')?.addEventListener('change', (e) => {
+            const ids = filteredItems().map(i => i.id);
+            if (e.target.checked) { ids.forEach(id => selectedIds.add(id)); }
+            else { ids.forEach(id => selectedIds.delete(id)); }
+            renderMenu();
+        });
+
+        // Modal actions
+        document.getElementById('closePromo')?.addEventListener('click', closePromoModal);
+        document.getElementById('applyPromo')?.addEventListener('click', () => {
+            const label = document.getElementById('promoLabel').value.trim() || 'Daily Special';
+            const pct   = Math.max(1, Math.min(90, parseInt(document.getElementById('promoPct').value || '0', 10)));
+            applyPromotion({ label, pct });
+            closePromoModal();
+        });
+
+        // Row events (delegation)
+        document.getElementById('menuGrid')?.addEventListener('click', onGridClick);
+        document.getElementById('menuGrid')?.addEventListener('change', onGridChange);
+        });
+
+        /* -------------------------
+        RENDER
+        ------------------------- */
+        function renderMenu() {
+        const grid = document.getElementById('menuGrid');
+        grid.innerHTML = '';
+
+        const items = filteredItems();
+        const anySelected = items.some(i => selectedIds.has(i.id));
+        const specialsActive = menuItems.some(i => !!i.promo);
+
+        // Banner
+        const banner = document.getElementById('specialsBanner');
+        banner.classList.toggle('hidden', !specialsActive);
+
+        // Empty state
+        if (!items.length) {
+            grid.innerHTML = `
+            <tr><td colspan="7" class="py-16">
+                <div class="text-center">
+                <div class="w-20 h-20 bg-gray-100 rounded-full grid place-items-center mx-auto mb-3">
+                    <i class="fas fa-utensils text-2xl text-gray-400"></i>
+                </div>
+                <p class="text-gray-600 font-medium">No menu items found</p>
+                <p class="text-sm text-gray-500">Try clearing the search or changing category.</p>
+                </div>
+            </td></tr>`;
+            return;
+        }
+
+        // Rows
+        for (const item of items) {
+            const isSelected = selectedIds.has(item.id);
+            const promo      = item.promo;
+            const priceHtml  = promo
+            ? `<div class="flex items-baseline gap-2">
+                <span class="font-semibold text-gray-900">$${discounted(item.price, promo.pct)}</span>
+                <span class="text-xs line-through text-gray-400">$${item.price.toFixed(2)}</span>
+                </div>`
+            : `<span class="font-semibold text-gray-900">$${item.price.toFixed(2)}</span>`;
+
+            const promoHtml  = promo
+            ? `<span class="inline-flex items-center gap-1 text-xs rounded-full px-2 py-1 bg-amber-100 text-amber-800">
+                <i class="fas fa-tags"></i>${escapeHtml(promo.label)} -${promo.pct}%
+                </span>`
+            : `<span class="text-xs text-gray-400">—</span>`;
+
+            grid.insertAdjacentHTML('beforeend', `
+            <tr class="text-sm">
+                <td class="px-4 py-3 align-top">
+                <input type="checkbox" class="row-check rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                        data-id="${item.id}" ${isSelected ? 'checked' : ''}>
+                </td>
+                <td class="px-4 py-3 align-top">
+                <div class="font-medium text-gray-800">${escapeHtml(item.name)}</div>
+                </td>
+                <td class="px-4 py-3 align-top">
+                <span class="text-gray-600">${escapeHtml(item.category)}</span>
+                </td>
+                <td class="px-4 py-3 align-top">
+                ${priceHtml}
+                </td>
+                <td class="px-4 py-3 align-top">
+                <label class="inline-flex items-center gap-2">
+                    <input type="checkbox" class="toggle-stock rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                        data-id="${item.id}" ${item.inStock ? 'checked' : ''}>
+                    <span class="${item.inStock ? 'text-emerald-700' : 'text-gray-500'}">
+                    ${item.inStock ? 'In Stock' : 'Out of Stock'}
+                    </span>
+                </label>
+                </td>
+                <td class="px-4 py-3 align-top">
+                ${promoHtml}
+                </td>
+                <td class="px-4 py-3 align-top">
+                <div class="flex items-center gap-2">
+                    <button class="px-3 py-1.5 text-xs rounded bg-amber-500 text-white hover:bg-amber-600"
+                            data-action="row-promo" data-id="${item.id}">
+                    <i class="fas fa-tags mr-1"></i>Special
+                    </button>
+                    <button class="px-3 py-1.5 text-xs rounded bg-slate-100 text-slate-800 hover:bg-slate-200"
+                            data-action="row-clear" data-id="${item.id}">
+                    <i class="fas fa-eraser mr-1"></i>Clear
+                    </button>
+                </div>
+                </td>
+            </tr>
+            `);
+        }
+
+        // Keep header "select all" in sync for current filter
+        const selectAll = document.getElementById('selectAllMenu');
+        if (selectAll) {
+            const ids = items.map(i => i.id);
+            const checkedCount = ids.filter(id => selectedIds.has(id)).length;
+            selectAll.checked = ids.length && checkedCount === ids.length;
+            selectAll.indeterminate = checkedCount > 0 && checkedCount < ids.length;
+        }
+        }
+
+        /* -------------------------
+        EVENT HANDLERS
+        ------------------------- */
+        function onGridClick(e) {
+        const btn = e.target.closest('button[data-action]');
+        if (!btn) return;
+        const id = btn.getAttribute('data-id');
+        if (!id) return;
+
+        if (btn.dataset.action === 'row-promo') {
+            // Open modal targeting a single item (pre-select that row)
+            selectedIds = new Set([id]);
+            openPromoModal();
+        } else if (btn.dataset.action === 'row-clear') {
+            const item = menuItems.find(m => m.id === id);
+            if (item) item.promo = null;
+            renderMenu();
+        }
+        }
+
+        function onGridChange(e) {
+        // Row selection
+        if (e.target.classList.contains('row-check')) {
+            const id = e.target.getAttribute('data-id');
+            if (e.target.checked) selectedIds.add(id);
+            else selectedIds.delete(id);
+            renderMenu();
+        }
+
+        // Toggle stock
+        if (e.target.classList.contains('toggle-stock')) {
+            const id = e.target.getAttribute('data-id');
+            const item = menuItems.find(m => m.id === id);
+            if (item) item.inStock = e.target.checked;
+            renderMenu();
+        }
+        }
+
+        /* -------------------------
+        FILTER / HELPERS
+        ------------------------- */
+        function filteredItems() {
+        return menuItems.filter(i => {
+            if (categoryFilter && i.category !== categoryFilter) return false;
+            if (searchTerm) {
+            const blob = `${i.name} ${i.category}`.toLowerCase();
+            if (!blob.includes(searchTerm)) return false;
+            }
+            return true;
+        });
+        }
+
+        function hydrateCategoryFilter() {
+        const sel = document.getElementById('menuCategory');
+        const cats = Array.from(new Set(menuItems.map(i => i.category)));
+        for (const c of cats) {
+            sel.insertAdjacentHTML('beforeend', `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`);
+        }
+        }
+
+        function bulkAvailability(inStock) {
+        const targets = selectionOrFiltered();
+        targets.forEach(i => i.inStock = inStock);
+        renderMenu();
+        }
+
+        function applyPromotion(p) {
+        const targets = selectionOrFiltered();
+        targets.forEach(i => i.promo = { label: p.label, pct: p.pct });
+        renderMenu();
+        }
+
+        function clearPromotions() {
+        const targets = selectionOrFiltered();
+        targets.forEach(i => i.promo = null);
+        renderMenu();
+        }
+
+        function selectionOrFiltered() {
+        const items = filteredItems();
+        const selectedInFilter = items.filter(i => selectedIds.has(i.id));
+        return selectedInFilter.length ? selectedInFilter : items;
+        }
+
+        function discounted(price, pct) {
+        const v = price * (1 - pct / 100);
+        return v.toFixed(2);
+        }
+
+        function escapeHtml(str){
+        return String(str).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[s]));
+        }
+
+        /* -------------------------
+        MODAL
+        ------------------------- */
+        function openPromoModal(){
+        document.getElementById('promoLabel').value = 'Daily Special';
+        document.getElementById('promoPct').value = 20;
+        document.getElementById('promoModal').classList.remove('hidden');
+        }
+        function closePromoModal(){
+        document.getElementById('promoModal').classList.add('hidden');
+        }
+        
+        
+        /* -------------------------
+        CUSOMTER SECITON DETIALS / HELPERS
+        ------------------------- */
+        const customers = [
+        {
+            id: 'c-001',
+            name: 'Lisa Davis',
+            lastOrderId: '351',
+            lastOrderAt: '23 Feb 2021, 08:28 PM',
+            phone: '0917 123 4567',
+            channel: 'SMS',
+            specialInstructions: [
+            'Allergy: peanuts (strict).',
+            'No onions on burgers.',
+            'Leave at front desk; call on arrival.'
+            ],
+            inquiry: {
+            open: true,
+            history: [
+                { from: 'customer', text: 'Hi! Do you deliver to Pasig?', ts: Date.now()-1000*60*25 },
+                { from: 'staff',    text: 'Yes, within 5km. What’s your exact location?', ts: Date.now()-1000*60*22 }
+            ]
+            }
+        },
+        {
+            id: 'c-002',
+            name: 'Tom Brown',
+            lastOrderId: '350',
+            lastOrderAt: '23 Feb 2021, 07:28 PM',
+            phone: '0908 222 3333',
+            channel: 'Messenger',
+            specialInstructions: ['Extra napkins', 'Rider to call if >10m late'],
+            inquiry: {
+            open: false,
+            history: [
+                { from: 'customer', text: 'What time do you open?', ts: Date.now()-1000*60*60*5 },
+                { from: 'staff',    text: 'We’re open 9:00 AM – 9:00 PM daily.', ts: Date.now()-1000*60*60*5 + 120000 }
+            ]
+            }
+        },
+        {
+            id: 'c-003',
+            name: 'Sarah Wilson',
+            lastOrderId: '349',
+            lastOrderAt: '23 Feb 2021, 08:28 PM',
+            phone: '0919 555 7777',
+            channel: 'Phone',
+            specialInstructions: [],
+            inquiry: {
+            open: true,
+            history: [{ from: 'customer', text: 'Can I change fries to salad?', ts: Date.now()-1000*60*8 }]
+            }
+        }
+        ];
+
+        let selectedCustomerId = null;
+
+        // ======== Helpers ========
+        const $ = (q) => document.querySelector(q);
+        const $$ = (q) => document.querySelectorAll(q);
+        function escapeHtml(str){ return String(str).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[s])); }
+        function timeAgo(ts){ const m=Math.floor((Date.now()-ts)/60000); if(m<=0) return 'now'; if(m<60) return `${m}m`; const h=Math.floor(m/60); return `${h}h`; }
+
+        // ======== Render customers table ========
+        function renderCustomers(){
+        const tbody = $('#customersTable');
+        const q = ($('#custSearch')?.value || '').toLowerCase().trim();
+        const f = $('#custFilter')?.value || '';
+        const rows = customers.filter(c => {
+            const blob = `${c.name} ${c.lastOrderId}`.toLowerCase();
+            if (q && !blob.includes(q)) return false;
+            if (f === 'has-notes' && c.specialInstructions.length === 0) return false;
+            if (f === 'open-inquiry' && !c.inquiry.open) return false;
+            return true;
+        });
+
+        if (!rows.length){
+            tbody.innerHTML = `<tr><td colspan="3" class="px-3 py-8 text-center text-gray-500">No customers found</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = rows.map(c => `
+            <tr class="hover:bg-gray-50">
+            <td class="px-3 py-3">
+                <div class="font-medium text-gray-800">${escapeHtml(c.name)}</div>
+                <div class="text-xs text-gray-500">${escapeHtml(c.phone)} • ${escapeHtml(c.channel)}</div>
+                ${c.specialInstructions.length ? `<div class="mt-1 inline-flex items-center gap-1 text-xs rounded-full px-2 py-0.5 bg-amber-100 text-amber-800"><i class="fas fa-exclamation-circle"></i> ${c.specialInstructions.length} note(s)</div>` : ''}
+            </td>
+            <td class="px-3 py-3">
+                <div class="text-gray-700">#${escapeHtml(c.lastOrderId)}</div>
+                <div class="text-xs text-gray-500">${escapeHtml(c.lastOrderAt)}</div>
+            </td>
+            <td class="px-3 py-3 text-right">
+                ${c.inquiry.open
+                ? `<span class="inline-flex items-center gap-1 text-xs rounded-full px-2 py-1 bg-blue-100 text-blue-800 mr-2"><i class="fas fa-message"></i> Open</span>`
+                : `<span class="inline-flex items-center gap-1 text-xs rounded-full px-2 py-1 bg-gray-100 text-gray-700 mr-2"><i class="fas fa-check-circle"></i> Resolved</span>`}
+                <button class="px-3 py-1.5 text-xs rounded bg-emerald-600 text-white hover:bg-emerald-700" data-open="${c.id}">
+                View
+                </button>
+            </td>
+            </tr>
+        `).join('');
+        }
+
+        // ======== Render right-side panels ========
+        function openCustomer(id){
+        selectedCustomerId = id;
+        const c = customers.find(x => x.id === id);
+        if (!c) return;
+
+        // Special Instructions / Profile
+        $('#customerCard').innerHTML = `
+            <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-emerald-100 grid place-items-center">
+                <i class="fas fa-user text-emerald-600"></i>
+            </div>
+            <div>
+                <div class="font-semibold text-gray-900">${escapeHtml(c.name)}</div>
+                <div class="text-xs text-gray-500">${escapeHtml(c.phone)} • ${escapeHtml(c.channel)}</div>
+            </div>
+            </div>
+            <div class="mt-3">
+            <div class="text-xs uppercase tracking-wide text-gray-500 mb-1">Notes</div>
+            ${c.specialInstructions.length
+                ? `<ul class="list-disc pl-5 space-y-1 text-sm">${c.specialInstructions.map(n => `<li>${escapeHtml(n)}</li>`).join('')}</ul>`
+                : `<div class="text-sm text-gray-500">No special instructions on file.</div>`
+            }
+            </div>
+            <div class="mt-4 grid grid-cols-2 gap-2">
+            <button id="addNote" class="px-3 py-2 rounded bg-gray-100 text-gray-800 hover:bg-gray-200 text-sm"><i class="fas fa-plus mr-1"></i>Add Note</button>
+            <button id="clearNotes" class="px-3 py-2 rounded bg-slate-100 text-slate-800 hover:bg-slate-200 text-sm"><i class="fas fa-eraser mr-1"></i>Clear Notes</button>
+            </div>
+        `;
+
+        // Inquiry meta + thread
+        $('#inquiryMeta').textContent = `Order #${c.lastOrderId} • ${c.inquiry.open ? 'Open' : 'Resolved'}`;
+        paintThread(c);
+        }
+
+        function paintThread(c){
+        const box = $('#thread');
+        if (!c.inquiry.history.length){
+            box.innerHTML = `<div class="text-sm text-gray-500">No conversation yet.</div>`;
+            return;
+        }
+        box.innerHTML = c.inquiry.history.map(msg => {
+            const mine = msg.from === 'staff';
+            return `
+            <div class="mb-2 flex ${mine ? 'justify-end' : 'justify-start'}">
+                <div class="max-w-[80%] px-3 py-2 rounded-lg text-sm ${mine ? 'bg-emerald-600 text-white' : 'bg-white border border-gray-200 text-gray-800'}">
+                ${escapeHtml(msg.text)}
+                <div class="mt-1 text-[10px] opacity-70">${timeAgo(msg.ts)}</div>
+                </div>
+            </div>
+            `;
+        }).join('');
+        box.scrollTop = box.scrollHeight;
+        }
+
+        // ======== Auto-reply (simple keyword intents) ========
+        const intents = [
+        { k: ['open','hours','time'], reply: "We're open daily from 9:00 AM to 9:00 PM." },
+        { k: ['deliver','delivery','area','fee'], reply: "Yes, we deliver within 5km. Delivery fee is ₱59." },
+        { k: ['allergy','allergies','allergen'], reply: "We can note common allergens; please confirm any severe allergies." },
+        { k: ['status','ready','eta','when'], reply: "Your order is being prepared and should be ready soon." }
+        ];
+
+        function maybeAutoReply(text){
+        if (!$('#allowAutoReply')?.checked) return null;
+        const t = text.toLowerCase();
+        for (const intent of intents){
+            if (intent.k.some(k => t.includes(k))) return intent.reply;
+        }
+        return null;
+        }
+
+        // ======== Events ========
+        document.addEventListener('DOMContentLoaded', () => {
+        renderCustomers();
+
+        // Filters
+        $('#custSearch')?.addEventListener('input', renderCustomers);
+        $('#custFilter')?.addEventListener('change', renderCustomers);
+        });
+        // Row open
+        $('#customersTable').addEventListener('click', (e) => {
+        const btn = e.target.closest('button[data-open]');
+        if (!btn) return;
+        openCustomer(btn.getAttribute('data-open'));
+        });
+
+        // Quick replies (insert into composer immediately; click Send to send)
+        $$('.quick-reply').forEach(b =>
+        b.addEventListener('click', () => {
+            const txt = b.getAttribute('data-reply') || '';
+            const input = $('#messageInput');
+            input.value = txt;
+            input.focus();
+        })
+        );
+
+        // Send message
+        $('#sendMsg').addEventListener('click', () => {
+        if (!selectedCustomerId) return;
+        const input = $('#messageInput');
+        const text = input.value.trim();
+        if (!text) return;
+
+        const c = customers.find(x => x.id === selectedCustomerId);
+        c.inquiry.open = true;
+        c.inquiry.history.push({ from: 'staff', text, ts: Date.now() });
+
+        // Optional auto-reply to a customer message (only if staff typed a question-like text for demo)
+        const auto = maybeAutoReply(text);
+        if (auto) {
+            // simulate a short delay
+            setTimeout(() => {
+            c.inquiry.history.push({ from: 'customer', text: auto, ts: Date.now() });
+            paintThread(c);
+            renderCustomers();
+            }, 500);
+        }
+
+        input.value = '';
+        $('#inquiryMeta').textContent = `Order #${c.lastOrderId} • Open`;
+        paintThread(c);
+        renderCustomers();
+        });
+
+        // Resolve inquiry
+        $('#resolveInquiry').addEventListener('click', () => {
+        if (!selectedCustomerId) return;
+        const c = customers.find(x => x.id === selectedCustomerId);
+        c.inquiry.open = false;
+        $('#inquiryMeta').textContent = `Order #${c.lastOrderId} • Resolved`;
+        renderCustomers();
+        });
+
+        // Special Instructions: add / clear
+        $('#customerCard').addEventListener('click', (e) => {
+        const add = e.target.closest('#addNote');
+        const clr = e.target.closest('#clearNotes');
+        if (!selectedCustomerId) return;
+        const c = customers.find(x => x.id === selectedCustomerId);
+
+        if (add) {
+            const note = prompt('Add a special instruction (e.g., Allergy: shellfish).');
+            if (note && note.trim()) {
+            c.specialInstructions.push(note.trim());
+            openCustomer(c.id);     // re-render details
+            renderCustomers();      // refresh badges in list
+            }
+        }
+        if (clr) {
+            if (confirm('Clear all special instructions for this customer?')) {
+            c.specialInstructions = [];
+            openCustomer(c.id);
+            renderCustomers();
+            }
+        }
+        });
+
+        // Initial paint and auto-select first matching customer (if any)
+        document.addEventListener('DOMContentLoaded', () => {
+        renderCustomers();
+        const first = customers[0];
+        if (first) openCustomer(first.id);
+        });
+
+
+    //LOUGOUT SCRIPTS
+
+        // Helpers you already have:
+        function showLogin(){
+        document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+        document.getElementById('login-section')?.classList.add('active');
+        document.getElementById('sidebar')?.classList.add('hidden');
+        document.getElementById('topbar')?.classList.add('hidden');
+        }
+        function showLogoutScreen(){
+        document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+        document.getElementById('sidebar')?.classList.add('hidden');
+        document.getElementById('topbar')?.classList.add('hidden');
+        document.getElementById('logout-section')?.classList.add('active');
+        }
+        function returnToLogin(){
+        document.getElementById('logout-section')?.classList.remove('active');
+        showLogin();
+        }
+
+        // Open confirm modal when clicking sidebar logout
+        document.getElementById('sidebarLogoutBtn')?.addEventListener('click', () => {
+        const modal = document.getElementById('logoutConfirmModal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        });
+
+        // Handle confirm/cancel
+        document.getElementById('confirmLogout')?.addEventListener('click', () => {
+        // (Optional) clear session/localStorage here
+        // localStorage.removeItem('ff_staff_session');
+
+        closeLogoutModal();
+        showLogoutScreen();
+        });
+
+        document.getElementById('cancelLogout')?.addEventListener('click', closeLogoutModal);
+
+        // Close on backdrop click or ESC
+        document.getElementById('logoutConfirmModal')?.addEventListener('click', (e) => {
+        if (e.target.id === 'logoutConfirmModal') closeLogoutModal();
+        });
+        document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeLogoutModal();
+        });
+
+        function closeLogoutModal(){
+        const modal = document.getElementById('logoutConfirmModal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        }
+
+
+
+        </script>
+
+</body>
+</html>
